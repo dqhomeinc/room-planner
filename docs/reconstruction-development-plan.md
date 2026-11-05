@@ -180,31 +180,70 @@ The room model distinguishes:
 Physical dimensions are stored in meters. Units are converted only when users
 enter or view a value.
 
-## 7. Implementation PR sequence
+## 7. Implementation waves
 
-Each pull request should stay below 500 human-authored lines where practical
-and leave the repository in a testable state.
+Related changes are delivered in waves. Pull requests within a wave may be
+stacked when a later slice directly imports the earlier slice. Each PR should
+prefer 200 to 300 human-authored lines, remain below 500 where practical, and
+leave the repository in a testable state.
 
-| PR  | Scope                                                   | Completion condition                                                 |
-| --- | ------------------------------------------------------- | -------------------------------------------------------------------- |
-| 4   | Project, capture, job, report, and room-model contracts | Schemas reject invalid states and preserve provenance                |
-| 5   | Mobile recording/file-selection prototype               | A user can record or select, preview, replace, and cancel a video    |
-| 6   | Client capture validation                               | The browser produces a tested capture report and actionable warnings |
-| 7   | Authentication, projects, and access policies           | Pilot users can only read and modify their own projects              |
-| 8   | Private resumable upload                                | A project can upload, retry, cancel, and delete its video            |
-| 9   | Job lifecycle and status interface                      | Real backend states appear in the project without simulated progress |
-| 10  | Python worker foundation and CI                         | A worker safely leases, renews, completes, and abandons test jobs    |
-| 11  | Video probing and frame extraction                      | A synthetic video produces deterministic frames and a manifest       |
-| 12  | Reconstruction engine adapter                           | A tested adapter runs and parses the initial COLMAP baseline         |
-| 13  | Reconstruction quality evaluation                       | Unreliable results become structured recapture requests              |
-| 14  | Result persistence and delivery                         | Authorized users can retrieve versioned reconstruction output        |
-| 15  | Reference measurement and scaling                       | One known segment scales synthetic and real models in meters         |
-| 16  | Diagnostic 3D viewer                                    | The browser displays cameras, points, surfaces, and confidence       |
-| 17  | Benchmark harness and decision report                   | The consented dataset produces reproducible aggregate results        |
+### Wave 1: versioned contracts
 
-PRs 4 through 11 build the user-facing submission path and the worker platform
-in parallel. PRs 12 through 17 answer whether reconstruction is accurate and
-reliable enough to continue into furnishing.
+| Work item | Scope                                | Completion condition                                   |
+| --------- | ------------------------------------ | ------------------------------------------------------ |
+| W1.1      | Contract package and primitives      | Shared runtime validation runs in repository CI        |
+| W1.2      | Project and capture contracts        | Invalid ownership, media, and assessments are rejected |
+| W1.3      | Reconstruction job lifecycle         | Leases, retries, failures, and transitions are tested  |
+| W1.4      | Reconstruction report contracts      | Metrics and artifacts cannot claim false usability     |
+| W1.5      | Room-model and calibration contracts | Coordinates preserve confidence and provenance         |
+
+Wave 1 is stacked because every contract slice imports the shared primitives.
+
+### Wave 2: mobile capture
+
+| Work item | Scope                             | Completion condition                                            |
+| --------- | --------------------------------- | --------------------------------------------------------------- |
+| W2.1      | Video selection and local preview | A user can select, inspect, replace, and cancel a video         |
+| W2.2      | Mobile camera recording           | Supported phones can record with explicit permission UX         |
+| W2.3      | Metadata validation               | Unsupported size, duration, format, and resolution fail clearly |
+| W2.4      | Sampled quality signals           | Blur, darkness, and motion warnings produce capture reports     |
+
+Selection and recording are separated so browser permission behavior does not
+obscure the basic file lifecycle during review.
+
+### Wave 3: private submission
+
+| Work item | Scope                             | Completion condition                                   |
+| --------- | --------------------------------- | ------------------------------------------------------ |
+| W3.1      | Backend configuration and login   | Invite-only users can establish authenticated sessions |
+| W3.2      | Project persistence and policies  | Users cannot access projects owned by another user     |
+| W3.3      | Private resumable uploads         | Uploads support progress, cancel, retry, and deletion  |
+| W3.4      | Job creation and status interface | Real backend states appear without simulated progress  |
+
+### Wave 4: reconstruction worker
+
+| Work item | Scope                              | Completion condition                                    |
+| --------- | ---------------------------------- | ------------------------------------------------------- |
+| W4.1      | Python worker package and CI       | Python formatting, linting, typing, and tests run in CI |
+| W4.2      | Leasing and retry behavior         | Abandoned jobs recover without concurrent processing    |
+| W4.3      | Video probing                      | Source metadata becomes a versioned capture report      |
+| W4.4      | Deterministic frame extraction     | Synthetic video produces a reproducible frame manifest  |
+| W4.5      | Reconstruction engine adapter      | The initial COLMAP baseline is replaceable and tested   |
+| W4.6      | Quality evaluation and persistence | Unreliable output becomes an actionable failure         |
+
+### Wave 5: calibration and feasibility decision
+
+| Work item | Scope                         | Completion condition                                    |
+| --------- | ----------------------------- | ------------------------------------------------------- |
+| W5.1      | Authorized result delivery    | Only the project owner can retrieve reconstruction data |
+| W5.2      | Reference selection interface | A user can identify a well-observed segment             |
+| W5.3      | Metric calibration            | One known length scales the model with provenance       |
+| W5.4      | Diagnostic 3D viewer          | Cameras, points, surfaces, and confidence are visible   |
+| W5.5      | Benchmark and decision report | The consented dataset produces reproducible results     |
+
+Waves 1 through 4 produce the real user-facing submission and processing path.
+Wave 5 determines whether reconstruction is reliable enough to invest in the
+furnishing portion of the MVP.
 
 ## 8. Test strategy
 
