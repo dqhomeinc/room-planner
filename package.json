@@ -1,0 +1,23 @@
+{
+  "name": "room-planner",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @room-planner/web",
+    "dev": "npm run dev --workspace @room-planner/web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "npm run lint --workspace @room-planner/web",
+    "test": "npm run test --workspace @room-planner/web",
+    "typecheck": "npm run typecheck --workspace @room-planner/web"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}
