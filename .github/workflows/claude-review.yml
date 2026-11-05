@@ -1,0 +1,44 @@
+name: Claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    name: claude-review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Review current pull request
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          claude_args: --max-turns 8
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            REVIEWED COMMIT: ${{ github.event.pull_request.head.sha }}
+
+            Review this pull request without editing files. Read AGENTS.md and
+            CLAUDE.md first. Report only concrete, actionable defects introduced
+            by this change, with file and line references. Prioritize correctness,
+            privacy, authorization, unit/coordinate errors, job reliability,
+            product mismatches, mobile performance, and missing behavioral tests.
+            Avoid formatting feedback already covered by CI. End with the exact
+            reviewed commit SHA and a concise summary.
