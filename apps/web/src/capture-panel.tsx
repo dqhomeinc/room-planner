@@ -1,4 +1,17 @@
-import { type ChangeEvent, useEffect, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  type SyntheticEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import {
+  assessVideoFile,
+  assessVideoMetadata,
+  formatDuration,
+  metadataUnavailable,
+  type MetadataAssessment,
+} from './capture-validation';
 import {
   describeVideo,
   formatVideoSize,
@@ -8,6 +21,7 @@ import {
 export function CapturePanel() {
   const activePreviewUrl = useRef<string | null>(null);
   const [selection, setSelection] = useState<VideoSelection | null>(null);
+  const [validation, setValidation] = useState<MetadataAssessment | null>(null);
 
   useEffect(
     () => () => {
@@ -34,13 +48,38 @@ export function CapturePanel() {
     releasePreview();
     const previewUrl = URL.createObjectURL(file);
     activePreviewUrl.current = previewUrl;
-    setSelection(describeVideo(file, previewUrl));
+    const nextSelection = describeVideo(file, previewUrl);
+    setSelection(nextSelection);
+    setValidation(
+      assessVideoFile({
+        fileSizeBytes: nextSelection.size,
+        mimeType: nextSelection.type,
+      }),
+    );
     event.currentTarget.value = '';
+  }
+
+  function handleMetadata(event: SyntheticEvent<HTMLVideoElement>) {
+    if (!selection) {
+      return;
+    }
+
+    setValidation(
+      assessVideoMetadata(
+        { fileSizeBytes: selection.size, mimeType: selection.type },
+        {
+          durationSeconds: event.currentTarget.duration,
+          widthPixels: event.currentTarget.videoWidth,
+          heightPixels: event.currentTarget.videoHeight,
+        },
+      ),
+    );
   }
 
   function clearSelection() {
     releasePreview();
     setSelection(null);
+    setValidation(null);
   }
 
   return (
@@ -64,6 +103,14 @@ export function CapturePanel() {
               playsInline
               preload="metadata"
               aria-label={`Preview of ${selection.name}`}
+              onLoadedMetadata={handleMetadata}
+              onError={() =>
+                setValidation((current) =>
+                  current?.assessment === 'rejected'
+                    ? current
+                    : metadataUnavailable(),
+                )
+              }
             />
             <dl className="video-details">
               <div>
@@ -78,7 +125,41 @@ export function CapturePanel() {
                 <dt>Size</dt>
                 <dd>{formatVideoSize(selection.size)}</dd>
               </div>
+              {validation?.metadata ? (
+                <>
+                  <div>
+                    <dt>Duration</dt>
+                    <dd>
+                      {formatDuration(validation.metadata.durationSeconds)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Resolution</dt>
+                    <dd>
+                      {validation.metadata.widthPixels} ×{' '}
+                      {validation.metadata.heightPixels}
+                    </dd>
+                  </div>
+                </>
+              ) : null}
             </dl>
+            {validation ? (
+              <div
+                className={`capture-assessment ${validation.assessment}`}
+                role={validation.assessment === 'rejected' ? 'alert' : 'status'}
+              >
+                <strong>
+                  {validation.assessment === 'checking'
+                    ? 'Checking duration and resolution…'
+                    : validation.assessment === 'accepted'
+                      ? 'Video meets the pilot metadata checks.'
+                      : 'Choose or record a different video.'}
+                </strong>
+                {validation.checks.map((check) => (
+                  <p key={check.code}>{check.message}</p>
+                ))}
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="video-empty">
