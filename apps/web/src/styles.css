@@ -200,6 +200,7 @@ h2 {
 
 .capture-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   margin-top: 20px;
@@ -221,6 +222,7 @@ h2 {
 }
 
 .secondary-action {
+  display: inline-block;
   padding: 13px 18px;
   border: 1px solid rgb(24 51 45 / 28%);
   border-radius: 100px;
@@ -229,6 +231,24 @@ h2 {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+.quiet-action {
+  padding: 12px 4px;
+  border: 0;
+  color: #4b625d;
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.camera-note {
+  margin: 16px 0 0;
+  color: #70817d;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .room-card {
