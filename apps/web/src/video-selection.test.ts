@@ -9,6 +9,7 @@ describe('video selection', () => {
         'blob:local-preview',
       ),
     ).toEqual({
+      mimeType: 'video/quicktime',
       name: 'living-room.mov',
       previewUrl: 'blob:local-preview',
       size: 5_242_880,
@@ -16,13 +17,16 @@ describe('video selection', () => {
     });
   });
 
-  it('labels files whose browser does not report a media type', () => {
-    expect(
-      describeVideo(
-        { name: 'room-video', size: 4, type: '' },
-        'blob:unknown-format',
-      ).type,
-    ).toBe('Unknown video format');
+  it('labels missing types without losing the raw MIME value', () => {
+    const selection = describeVideo(
+      { name: 'room-video', size: 4, type: '' },
+      'blob:unknown-format',
+    );
+
+    expect(selection).toMatchObject({
+      mimeType: '',
+      type: 'Unknown video format',
+    });
   });
 
   it.each([
