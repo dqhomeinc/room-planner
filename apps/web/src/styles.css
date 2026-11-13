@@ -35,6 +35,7 @@ main {
 
 nav,
 .hero,
+.capture,
 .workflow {
   width: min(1120px, calc(100% - 40px));
   margin-inline: auto;
@@ -121,6 +122,113 @@ h2 {
   background: #c55f3d;
   font-weight: 600;
   text-decoration: none;
+}
+
+.capture {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 64px;
+  align-items: center;
+  padding-block: 92px;
+  border-top: 1px solid rgb(24 51 45 / 18%);
+}
+
+.capture-copy > p:last-child {
+  max-width: 480px;
+  color: #4b625d;
+  line-height: 1.7;
+}
+
+.capture-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgb(24 51 45 / 18%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 45%);
+}
+
+.video-preview,
+.video-empty {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  background: #18332d;
+}
+
+.video-preview {
+  display: block;
+  object-fit: contain;
+}
+
+.video-empty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  color: #f4efe7;
+  text-align: center;
+}
+
+.video-empty span {
+  display: grid;
+  width: 52px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgb(244 239 231 / 55%);
+  border-radius: 50%;
+}
+
+.video-details {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 0.7fr;
+  gap: 16px;
+  margin: 20px 0 0;
+}
+
+.video-details dt {
+  color: #70817d;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.video-details dd {
+  overflow: hidden;
+  margin: 5px 0 0;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capture-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.capture-actions .primary-action {
+  margin-top: 0;
+  cursor: pointer;
+}
+
+.video-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.secondary-action {
+  padding: 13px 18px;
+  border: 1px solid rgb(24 51 45 / 28%);
+  border-radius: 100px;
+  color: #18332d;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .room-card {
@@ -240,6 +348,15 @@ h2 {
 
   .room-card {
     min-height: 360px;
+  }
+
+  .capture {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .video-details {
+    grid-template-columns: 1fr;
   }
 
   .workflow ol {

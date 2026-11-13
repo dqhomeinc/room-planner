@@ -1,3 +1,4 @@
+import { CapturePanel } from './capture-panel';
 import { productSteps } from './product-steps';
 import './styles.css';
 
@@ -22,8 +23,8 @@ export function App() {
             Capture a room with your phone, explore a measured 3D model, and
             compare furnishing plans built from products you can actually buy.
           </p>
-          <a className="primary-action" href="#workflow">
-            Preview the workflow
+          <a className="primary-action" href="#capture">
+            Choose a room video
           </a>
         </div>
         <div className="room-card" aria-label="Illustrated room preview">
@@ -38,6 +39,8 @@ export function App() {
           <p>Interactive room preview coming soon</p>
         </div>
       </section>
+
+      <CapturePanel />
 
       <section className="workflow" id="workflow">
         <p className="eyebrow">The pilot workflow</p>
