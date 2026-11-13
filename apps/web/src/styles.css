@@ -216,6 +216,31 @@ h2 {
   margin: 4px 0 0;
 }
 
+.quality-assessment {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgb(24 51 45 / 14%);
+  border-radius: 12px;
+  background: #f0eee7;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.quality-assessment.warning {
+  color: #70422e;
+  background: #f6e8d6;
+}
+
+.quality-assessment p {
+  margin: 4px 0 0;
+}
+
+.quality-assessment small {
+  display: block;
+  margin-top: 8px;
+  color: #70817d;
+}
+
 .capture-actions {
   display: flex;
   flex-wrap: wrap;
