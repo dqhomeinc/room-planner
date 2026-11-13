@@ -47,7 +47,7 @@ export function CapturePanel() {
     <section className="capture" id="capture" aria-labelledby="capture-title">
       <div className="capture-copy">
         <p className="eyebrow">Start with a video</p>
-        <h2 id="capture-title">Choose a room video to preview.</h2>
+        <h2 id="capture-title">Choose or record a room video.</h2>
         <p>
           The video stays on this device. This preview does not upload or
           process it yet.
@@ -89,15 +89,34 @@ export function CapturePanel() {
 
         <div className="capture-actions">
           <label className="primary-action video-picker">
-            {selection ? 'Replace video' : 'Choose video'}
+            {selection ? 'Replace from library' : 'Choose from library'}
             <input type="file" accept="video/*" onChange={handleSelection} />
           </label>
+          <label className="secondary-action video-picker">
+            {selection ? 'Record again' : 'Record with camera'}
+            <input
+              type="file"
+              accept="video/*"
+              capture="environment"
+              aria-describedby="camera-note"
+              onChange={handleSelection}
+            />
+          </label>
           {selection ? (
-            <button className="secondary-action" onClick={clearSelection}>
+            <button
+              className="quiet-action"
+              type="button"
+              onClick={clearSelection}
+            >
               Remove video
             </button>
           ) : null}
         </div>
+        <p className="camera-note" id="camera-note">
+          On supported phones, recording opens the rear camera. Your device
+          controls camera access and may ask for permission first. Other devices
+          may show a file picker.
+        </p>
       </div>
     </section>
   );
