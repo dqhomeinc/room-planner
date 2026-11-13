@@ -198,6 +198,24 @@ h2 {
   white-space: nowrap;
 }
 
+.capture-assessment {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #e4ece8;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.capture-assessment.rejected {
+  color: #7b3025;
+  background: #f5dfd8;
+}
+
+.capture-assessment p {
+  margin: 4px 0 0;
+}
+
 .capture-actions {
   display: flex;
   flex-wrap: wrap;
