@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import {
+  applyMediaError,
   assessVideoFile,
   assessVideoMetadata,
   formatDuration,
@@ -52,8 +53,9 @@ export function CapturePanel() {
     setSelection(nextSelection);
     setValidation(
       assessVideoFile({
+        fileName: nextSelection.name,
         fileSizeBytes: nextSelection.size,
-        mimeType: nextSelection.type,
+        mimeType: nextSelection.mimeType,
       }),
     );
     event.currentTarget.value = '';
@@ -64,16 +66,40 @@ export function CapturePanel() {
       return;
     }
 
-    setValidation(
-      assessVideoMetadata(
-        { fileSizeBytes: selection.size, mimeType: selection.type },
-        {
-          durationSeconds: event.currentTarget.duration,
-          widthPixels: event.currentTarget.videoWidth,
-          heightPixels: event.currentTarget.videoHeight,
-        },
-      ),
-    );
+    const video = event.currentTarget;
+    const assessLoadedVideo = () =>
+      setValidation(
+        assessVideoMetadata(
+          {
+            fileName: selection.name,
+            fileSizeBytes: selection.size,
+            mimeType: selection.mimeType,
+          },
+          {
+            durationSeconds: video.duration,
+            widthPixels: video.videoWidth,
+            heightPixels: video.videoHeight,
+          },
+        ),
+      );
+
+    if (video.duration === Number.POSITIVE_INFINITY) {
+      const finishDurationProbe = () => {
+        video.currentTime = 0;
+        assessLoadedVideo();
+      };
+
+      video.addEventListener('timeupdate', finishDurationProbe, { once: true });
+      try {
+        video.currentTime = Number.MAX_SAFE_INTEGER;
+      } catch {
+        video.removeEventListener('timeupdate', finishDurationProbe);
+        setValidation((current) => metadataUnavailable(current?.checks ?? []));
+      }
+      return;
+    }
+
+    assessLoadedVideo();
   }
 
   function clearSelection() {
@@ -105,11 +131,7 @@ export function CapturePanel() {
               aria-label={`Preview of ${selection.name}`}
               onLoadedMetadata={handleMetadata}
               onError={() =>
-                setValidation((current) =>
-                  current?.assessment === 'rejected'
-                    ? current
-                    : metadataUnavailable(),
-                )
+                setValidation((current) => applyMediaError(current))
               }
             />
             <dl className="video-details">

@@ -12,6 +12,7 @@ const supportedVideoTypes = new Set([
   'video/webm',
   'video/x-m4v',
 ]);
+const supportedVideoExtensions = new Set(['mp4', 'mov', 'm4v', 'webm']);
 
 export type MetadataCheck = {
   code:
@@ -36,12 +37,17 @@ export type MetadataAssessment = {
   metadata?: VideoMetadata;
 };
 
-type FileFacts = { fileSizeBytes: number; mimeType: string };
+type FileFacts = { fileName: string; fileSizeBytes: number; mimeType: string };
 
 export function assessVideoFile(file: FileFacts): MetadataAssessment {
   const checks: MetadataCheck[] = [];
 
-  if (!supportedVideoTypes.has(file.mimeType)) {
+  const extension = file.fileName.toLowerCase().split('.').pop() ?? '';
+  const formatSupported = file.mimeType
+    ? supportedVideoTypes.has(file.mimeType)
+    : supportedVideoExtensions.has(extension);
+
+  if (!formatSupported) {
     checks.push({
       code: 'unsupported_format',
       message: 'Choose an MP4, MOV, M4V, or WebM video.',
@@ -71,11 +77,13 @@ export function assessVideoMetadata(
 
   if (
     !Number.isFinite(durationSeconds) ||
+    !Number.isFinite(widthPixels) ||
+    !Number.isFinite(heightPixels) ||
     durationSeconds <= 0 ||
     widthPixels <= 0 ||
     heightPixels <= 0
   ) {
-    return metadataUnavailable();
+    return metadataUnavailable(checks);
   }
 
   if (durationSeconds < captureLimits.minDurationSeconds) {
@@ -109,10 +117,13 @@ export function assessVideoMetadata(
   };
 }
 
-export function metadataUnavailable(): MetadataAssessment {
+export function metadataUnavailable(
+  existingChecks: MetadataCheck[] = [],
+): MetadataAssessment {
   return {
     assessment: 'rejected',
     checks: [
+      ...existingChecks,
       {
         code: 'metadata_unavailable',
         message:
@@ -120,6 +131,14 @@ export function metadataUnavailable(): MetadataAssessment {
       },
     ],
   };
+}
+
+export function applyMediaError(
+  current: MetadataAssessment | null,
+): MetadataAssessment | null {
+  return current?.assessment === 'checking'
+    ? metadataUnavailable(current.checks)
+    : current;
 }
 
 export function formatDuration(seconds: number): string {

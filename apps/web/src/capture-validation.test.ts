@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyMediaError,
   assessVideoFile,
   assessVideoMetadata,
   captureLimits,
@@ -8,6 +9,7 @@ import {
 } from './capture-validation';
 
 const validFile = {
+  fileName: 'room.mp4',
   fileSizeBytes: 80 * 1024 * 1024,
   mimeType: 'video/mp4',
 };
@@ -36,6 +38,7 @@ describe('capture metadata validation', () => {
   it('rejects unsupported and oversized files before loading metadata', () => {
     expect(
       assessVideoFile({
+        fileName: 'room.mkv',
         fileSizeBytes: captureLimits.maxFileSizeBytes + 1,
         mimeType: 'video/x-matroska',
       }).checks.map(({ code }) => code),
@@ -64,6 +67,81 @@ describe('capture metadata validation', () => {
       assessment: 'rejected',
       checks: [{ code: 'metadata_unavailable' }],
     });
+  });
+
+  it('preserves file failures when metadata is unreadable', () => {
+    const result = assessVideoMetadata(
+      {
+        fileName: 'room.mp4',
+        fileSizeBytes: captureLimits.maxFileSizeBytes + 1,
+        mimeType: 'video/mp4',
+      },
+      { durationSeconds: Number.NaN, widthPixels: 0, heightPixels: 0 },
+    );
+
+    expect(result.checks.map(({ code }) => code)).toEqual([
+      'file_too_large',
+      'metadata_unavailable',
+    ]);
+  });
+
+  it.each([
+    [Number.NaN, 1920, 1080],
+    [45, Number.NaN, 1080],
+    [45, 1920, Number.POSITIVE_INFINITY],
+  ])(
+    'rejects non-finite metadata values',
+    (durationSeconds, widthPixels, heightPixels) => {
+      expect(
+        assessVideoMetadata(validFile, {
+          durationSeconds,
+          widthPixels,
+          heightPixels,
+        }).checks.map(({ code }) => code),
+      ).toContain('metadata_unavailable');
+    },
+  );
+
+  it('falls back to a supported extension when MIME type is empty', () => {
+    expect(
+      assessVideoFile({
+        fileName: 'ROOM.MOV',
+        fileSizeBytes: 20,
+        mimeType: '',
+      }).assessment,
+    ).toBe('checking');
+  });
+
+  it('turns media errors into rejections only while metadata is pending', () => {
+    const checking = assessVideoFile(validFile);
+    const accepted = assessVideoMetadata(validFile, {
+      durationSeconds: 45,
+      widthPixels: 1920,
+      heightPixels: 1080,
+    });
+
+    expect(applyMediaError(checking)?.assessment).toBe('rejected');
+    expect(applyMediaError(accepted)).toBe(accepted);
+    expect(applyMediaError(null)).toBeNull();
+  });
+
+  it('accepts exact upper boundaries and rejects a 719px short edge', () => {
+    expect(
+      assessVideoMetadata(
+        {
+          ...validFile,
+          fileSizeBytes: captureLimits.maxFileSizeBytes,
+        },
+        { durationSeconds: 300, widthPixels: 1280, heightPixels: 720 },
+      ).assessment,
+    ).toBe('accepted');
+    expect(
+      assessVideoMetadata(validFile, {
+        durationSeconds: 45,
+        widthPixels: 1280,
+        heightPixels: 719,
+      }).checks.map(({ code }) => code),
+    ).toContain('resolution_too_low');
   });
 
   it.each([

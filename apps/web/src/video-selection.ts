@@ -1,4 +1,5 @@
 export type VideoSelection = {
+  mimeType: string;
   name: string;
   previewUrl: string;
   size: number;
@@ -12,6 +13,7 @@ export function describeVideo(
   previewUrl: string,
 ): VideoSelection {
   return {
+    mimeType: file.type,
     name: file.name,
     previewUrl,
     size: file.size,
