@@ -1,11 +1,13 @@
 # Room Planner
 
-A mobile-first room-planning experiment. The product will turn a guided phone
-video and one verified reference measurement into an editable, furnished room.
+A design-first room-planning experiment. The product turns known room geometry
+and a user's goals into creative, validated, editable furniture layouts that can
+be explored in 2D and 3D.
 
-This repository currently contains the foundation and a deployable product
-preview. Reconstruction, calibration, and furnishing will arrive as isolated
-follow-up changes after the capture feasibility experiment.
+The first MVP starts with manual dimensions and simple room templates. Importers
+and video reconstruction can later produce the same canonical planning-room
+model without blocking design development. See
+`docs/design-first-mvp-plan.md` for the development order.
 
 ## Local development
 

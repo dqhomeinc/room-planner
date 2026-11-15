@@ -1,6 +1,12 @@
 # Reconstruction development plan
 
-Status: proposed for review
+Status: supporting input track; deferred until the design MVP proves useful
+
+The primary product plan is now `docs/design-first-mvp-plan.md`. Reconstruction
+is one future adapter for producing a canonical planning room, not a prerequisite
+for furniture layout generation. The capture work already implemented remains
+useful, but private submission, worker, and calibration development should not
+displace the design-first waves unless the product priority changes again.
 
 This document defines the first user-facing implementation phase of Room
 Planner. Its purpose is to determine whether ordinary phone video can produce
@@ -242,8 +248,9 @@ obscure the basic file lifecycle during review.
 | W5.5      | Benchmark and decision report | The consented dataset produces reproducible results     |
 
 Waves 1 through 4 produce the real user-facing submission and processing path.
-Wave 5 determines whether reconstruction is reliable enough to invest in the
-furnishing portion of the MVP.
+Wave 5 determines whether reconstruction is reliable enough to serve as a
+planning-room input. Furnishing development proceeds independently using manual
+and synthetic metric rooms.
 
 ## 8. Test strategy
 
