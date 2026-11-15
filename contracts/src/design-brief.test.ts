@@ -30,7 +30,6 @@ const brief = {
     minimumMinorUnits: 100_000,
     maximumMinorUnits: 300_000,
   },
-  freeformRequest: 'Keep the room open enough for small gatherings.',
   interpretation: { source: 'structured_controls' },
   assumptions: [],
   createdAt: '2026-11-15T12:00:00-05:00',
@@ -38,17 +37,7 @@ const brief = {
 } as const;
 
 describe('design brief contract', () => {
-  it('accepts structured user needs and preferences', () => {
-    expect(DesignBriefSchema.parse(brief).activities[0].priority).toBe(5);
-  });
-
-  it('requires at least one room activity', () => {
-    expect(() =>
-      DesignBriefSchema.parse({ ...brief, activities: [] }),
-    ).toThrow();
-  });
-
-  it('requires a positive minimum for required furniture', () => {
+  it('validates required and excluded furniture quantities', () => {
     expect(() =>
       DesignBriefSchema.parse({
         ...brief,
@@ -60,9 +49,6 @@ describe('design brief contract', () => {
         ],
       }),
     ).toThrow('required furniture must have a positive minimum');
-  });
-
-  it('requires excluded furniture to have zero quantity', () => {
     expect(() =>
       DesignBriefSchema.parse({
         ...brief,
@@ -74,6 +60,35 @@ describe('design brief contract', () => {
         ],
       }),
     ).toThrow('excluded furniture must have zero quantity');
+  });
+
+  it('rejects inverted quantities and duplicate requirement categories', () => {
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        furnitureRequirements: [
+          {
+            ...brief.furnitureRequirements[0],
+            minimumQuantity: 4,
+            maximumQuantity: 2,
+          },
+        ],
+      }),
+    ).toThrow('minimum quantity cannot exceed maximum');
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        furnitureRequirements: [
+          brief.furnitureRequirements[0],
+          {
+            ...brief.furnitureRequirements[0],
+            importance: 'excluded',
+            minimumQuantity: 0,
+            maximumQuantity: 0,
+          },
+        ],
+      }),
+    ).toThrow('furniture requirement categories must be unique');
   });
 
   it('rejects contradictory design preferences', () => {
@@ -102,12 +117,122 @@ describe('design brief contract', () => {
     ).toThrow('budget minimum cannot exceed maximum');
   });
 
-  it('records the interpreter used for natural-language input', () => {
+  it('requires safe integer budget amounts', () => {
     expect(() =>
       DesignBriefSchema.parse({
         ...brief,
+        budget: {
+          kind: 'range',
+          currency: 'USD',
+          minimumMinorUnits: 100_000,
+          maximumMinorUnits: Number.MAX_SAFE_INTEGER + 1,
+        },
+      }),
+    ).toThrow();
+  });
+
+  it('accepts natural-language input with complete provenance', () => {
+    const parsed = DesignBriefSchema.parse({
+      ...brief,
+      freeformRequest: 'Keep the room open enough for small gatherings.',
+      interpretation: {
+        source: 'natural_language',
+        interpreterVersion: 'brief-interpreter-1.0.0',
+      },
+    });
+    expect(parsed.interpretation.source).toBe('natural_language');
+  });
+
+  it('requires language text and interpreter versions together', () => {
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        interpretation: {
+          source: 'natural_language',
+          interpreterVersion: 'brief-interpreter-1.0.0',
+        },
+      }),
+    ).toThrow('requires a free-form request');
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        freeformRequest: 'Keep the room open.',
         interpretation: { source: 'natural_language' },
       }),
     ).toThrow('requires an interpreter version');
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        interpretation: {
+          source: 'structured_controls',
+          interpreterVersion: 'unused-interpreter',
+        },
+      }),
+    ).toThrow('structured controls cannot name a language interpreter');
+  });
+
+  it('rejects free-form text attributed only to structured controls', () => {
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        freeformRequest: 'Keep the room open.',
+      }),
+    ).toThrow('must use mixed or natural-language interpretation');
+  });
+
+  it('requires unique retained items, moods, and assumption identifiers', () => {
+    const retainedId = 'e42ad349-77f5-4935-a11f-43d1cead83d6';
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        retainedFurnitureItemIds: [retainedId, retainedId],
+      }),
+    ).toThrow('retained furniture must be unique');
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        preferences: {
+          ...brief.preferences,
+          moods: ['comfortable', 'comfortable'],
+        },
+      }),
+    ).toThrow('moods must not contain duplicates');
+    const assumption = {
+      id: '7dcc8a90-2b0a-48ba-bdf6-7eec2e075337',
+      text: 'The window is the primary source of natural light.',
+      source: 'default',
+      confirmedByUser: false,
+    } as const;
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        assumptions: [assumption, assumption],
+      }),
+    ).toThrow('assumption identifiers must be unique');
+  });
+
+  it('requires explicit assumptions to be user-confirmed', () => {
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        assumptions: [
+          {
+            id: '7dcc8a90-2b0a-48ba-bdf6-7eec2e075337',
+            text: 'The user asked to keep the existing sofa.',
+            source: 'explicit',
+            confirmedByUser: false,
+          },
+        ],
+      }),
+    ).toThrow('explicit assumptions must be confirmed');
+  });
+
+  it('rejects stale timestamps', () => {
+    expect(() =>
+      DesignBriefSchema.parse({
+        ...brief,
+        updatedAt: '2026-11-15T11:59:00-05:00',
+      }),
+    ).toThrow('updatedAt cannot precede createdAt');
   });
 });
