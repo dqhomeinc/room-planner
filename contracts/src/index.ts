@@ -1,5 +1,6 @@
 export * from './capture';
 export * from './common';
+export * from './furniture';
 export * from './job';
 export * from './planning-room';
 export * from './project';
