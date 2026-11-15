@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import designFixture from '../../tests/fixtures/design/living-room-proposal.json';
 import fixture from '../../tests/fixtures/design/rectangular-living-room.json';
+import { DesignBriefSchema } from './design-brief';
+import { DesignProposalSchema } from './design-proposal';
 import { FurnitureItemSchema } from './furniture';
 import { PlanningRoomSchema } from './planning-room';
 
@@ -54,5 +57,16 @@ describe('synthetic design fixture', () => {
     expect(() => PlanningRoomSchema.parse(overflowingRoom)).toThrow(
       'opening must fit within its wall',
     );
+  });
+
+  it('contains a brief and proposal tied to the room and catalog', () => {
+    const room = PlanningRoomSchema.parse(fixture.room);
+    const brief = DesignBriefSchema.parse(designFixture.brief);
+    const proposal = DesignProposalSchema.parse(designFixture.proposal);
+
+    expect(brief.planningRoomId).toBe(room.id);
+    expect(proposal.planningRoomId).toBe(room.id);
+    expect(proposal.designBriefId).toBe(brief.id);
+    expect(proposal.placements).toHaveLength(4);
   });
 });
