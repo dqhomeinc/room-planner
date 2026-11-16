@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  ConfidenceSchema,
   ContractVersionSchema,
   IsoDateTimeSchema,
   ProjectIdSchema,
@@ -123,17 +124,39 @@ export const ProposalScoreSchema = z
   })
   .strict();
 
+export const InputContentHashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/);
+
 export const CatalogItemVersionSchema = z
   .object({
     furnitureItemId: FurnitureItemIdSchema,
     updatedAt: IsoDateTimeSchema,
+    contentHash: InputContentHashSchema,
   })
   .strict();
 
 export const ProposalInputSnapshotSchema = z
   .object({
-    planningRoomUpdatedAt: IsoDateTimeSchema,
-    designBriefUpdatedAt: IsoDateTimeSchema,
+    hashAlgorithm: z.literal('sha256-rfc8785'),
+    planningRoom: z
+      .object({
+        id: PlanningRoomIdSchema,
+        updatedAt: IsoDateTimeSchema,
+        contentHash: InputContentHashSchema,
+        geometryStatus: z.enum([
+          'inferred',
+          'partially_validated',
+          'user_validated',
+        ]),
+        minimumGeometryConfidence: ConfidenceSchema,
+      })
+      .strict(),
+    designBrief: z
+      .object({
+        id: DesignBriefIdSchema,
+        updatedAt: IsoDateTimeSchema,
+        contentHash: InputContentHashSchema,
+      })
+      .strict(),
     catalogItems: z.array(CatalogItemVersionSchema).max(256),
   })
   .strict();
@@ -180,6 +203,20 @@ export const DesignProposalSchema = z
         code: 'custom',
         message: 'only revisions after the first require a parent proposal',
         path: ['parentProposalId'],
+      });
+    }
+    if (proposal.inputSnapshot.planningRoom.id !== proposal.planningRoomId) {
+      context.addIssue({
+        code: 'custom',
+        message: 'planning room snapshot must match the proposal room',
+        path: ['inputSnapshot', 'planningRoom', 'id'],
+      });
+    }
+    if (proposal.inputSnapshot.designBrief.id !== proposal.designBriefId) {
+      context.addIssue({
+        code: 'custom',
+        message: 'design brief snapshot must match the proposal brief',
+        path: ['inputSnapshot', 'designBrief', 'id'],
       });
     }
     const placementIds = proposal.placements.map(({ id }) => id);

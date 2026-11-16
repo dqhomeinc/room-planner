@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DesignProposalSchema } from './design-proposal';
 
 const furnitureItemId = '83dc7f87-84dc-4220-9f9b-2e5094a380cd';
+const contentHash = `sha256:${'a'.repeat(64)}`;
 const placement = {
   id: 'a270f1c0-41df-48bb-a040-59bb5a6b775c',
   furnitureItemId,
@@ -19,12 +20,24 @@ const proposal = {
   revision: 1,
   name: 'Conversation-focused layout',
   inputSnapshot: {
-    planningRoomUpdatedAt: '2026-11-15T12:00:00-05:00',
-    designBriefUpdatedAt: '2026-11-15T12:05:00-05:00',
+    hashAlgorithm: 'sha256-rfc8785',
+    planningRoom: {
+      id: 'fcce2a13-8e03-4481-bad1-6d8c9db8ebc5',
+      updatedAt: '2026-11-15T12:00:00-05:00',
+      contentHash,
+      geometryStatus: 'user_validated',
+      minimumGeometryConfidence: 0.95,
+    },
+    designBrief: {
+      id: '0d9ebd23-7d16-4bef-935e-7f6fa76070b8',
+      updatedAt: '2026-11-15T12:05:00-05:00',
+      contentHash,
+    },
     catalogItems: [
       {
         furnitureItemId,
         updatedAt: '2026-11-15T11:00:00-05:00',
+        contentHash,
       },
     ],
   },
@@ -213,5 +226,32 @@ describe('design proposal contract', () => {
         scores: [proposal.scores[0], proposal.scores[0]],
       }),
     ).toThrow('proposal score kinds must be unique');
+  });
+
+  it('requires snapshot identifiers and canonical content hashes', () => {
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        inputSnapshot: {
+          ...proposal.inputSnapshot,
+          planningRoom: {
+            ...proposal.inputSnapshot.planningRoom,
+            id: '6d9e556f-28e0-4f2e-a806-1116d19a5f86',
+          },
+        },
+      }),
+    ).toThrow('planning room snapshot must match');
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        inputSnapshot: {
+          ...proposal.inputSnapshot,
+          designBrief: {
+            ...proposal.inputSnapshot.designBrief,
+            contentHash: 'sha256:not-a-hash',
+          },
+        },
+      }),
+    ).toThrow();
   });
 });
