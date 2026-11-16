@@ -5,3 +5,5 @@ or production room data into the repository or CI artifacts.
 
 `design/rectangular-living-room.json` is a wholly synthetic metric room and
 starter catalog used by contract, editor, and layout-engine tests.
+`design/living-room-proposal.json` adds a synthetic design brief and proposal
+that reference that exact room and catalog.
