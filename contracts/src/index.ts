@@ -1,6 +1,7 @@
 export * from './capture';
 export * from './common';
 export * from './design-brief';
+export * from './design-proposal';
 export * from './furniture';
 export * from './job';
 export * from './planning-room';
