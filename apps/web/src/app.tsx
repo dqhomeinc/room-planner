@@ -1,6 +1,14 @@
 import { CapturePanel } from './capture-panel';
 import { productSteps } from './product-steps';
+import { RoomPlanSurface } from './room-plan-surface';
 import './styles.css';
+
+const previewBoundary = [
+  { x: 0, y: 0 },
+  { x: 5, y: 0 },
+  { x: 5, y: 4 },
+  { x: 0, y: 4 },
+];
 
 export function App() {
   return (
@@ -27,16 +35,11 @@ export function App() {
             Choose a room video
           </a>
         </div>
-        <div className="room-card" aria-label="Illustrated room preview">
-          <div className="sun" />
-          <div className="window" />
-          <div className="sofa">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="table" />
-          <p>Interactive room preview coming soon</p>
+        <div className="room-card">
+          <RoomPlanSurface
+            boundary={previewBoundary}
+            label="Five by four meter room preview"
+          />
         </div>
       </section>
 
