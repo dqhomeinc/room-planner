@@ -207,6 +207,7 @@ describe('synthetic design fixture', () => {
       wallEnd.x - wallStart.x,
       wallEnd.y - wallStart.y,
     );
+    expect(wallStart.y).toBe(wallEnd.y);
     const wallDirectionX = (wallEnd.x - wallStart.x) / wallLength;
     const doorEndX =
       wallStart.x +
@@ -219,9 +220,19 @@ describe('synthetic design fixture', () => {
       sofaItem.clearance.leftMeters + Number.EPSILON,
     );
 
-    for (const chair of proposal.placements.filter(
-      ({ furnitureItemId }) => furnitureItemId === furniture[1].id,
-    )) {
+    const chairItem = furniture.find(
+      ({ category, design }) =>
+        category === 'seating' && !design.functionTags.includes('three-seat'),
+    )!;
+    const chairs = proposal.placements.filter(
+      ({ furnitureItemId }) => furnitureItemId === chairItem.id,
+    );
+    expect(chairs).toHaveLength(2);
+    const tableMinX =
+      table.transform.position.x - tableItem.dimensions.widthMeters / 2;
+    const tableMaxX =
+      table.transform.position.x + tableItem.dimensions.widthMeters / 2;
+    for (const chair of chairs) {
       const angle = (chair.transform.rotationDegrees * Math.PI) / 180;
       const front = { x: -Math.sin(angle), y: Math.cos(angle) };
       const toward = {
@@ -232,6 +243,41 @@ describe('synthetic design fixture', () => {
         (front.x * toward.x + front.y * toward.y) /
         Math.hypot(toward.x, toward.y);
       expect(alignment).toBeGreaterThan(0.99);
+
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const chairXs = [
+        [
+          -chairItem.dimensions.widthMeters / 2,
+          -chairItem.dimensions.depthMeters / 2,
+        ],
+        [
+          chairItem.dimensions.widthMeters / 2,
+          -chairItem.dimensions.depthMeters / 2,
+        ],
+        [
+          chairItem.dimensions.widthMeters / 2,
+          chairItem.dimensions.depthMeters / 2,
+        ],
+        [
+          -chairItem.dimensions.widthMeters / 2,
+          chairItem.dimensions.depthMeters / 2,
+        ],
+      ].map(([x, y]) => chair.transform.position.x + x * cos - y * sin);
+      const chairMinX = Math.min(...chairXs);
+      const chairMaxX = Math.max(...chairXs);
+      const chairIsLeftOfTable =
+        chair.transform.position.x < table.transform.position.x;
+      const chairTableGap = chairIsLeftOfTable
+        ? tableMinX - chairMaxX
+        : chairMinX - tableMaxX;
+      const tableSideClearance = chairIsLeftOfTable
+        ? tableItem.clearance.leftMeters
+        : tableItem.clearance.rightMeters;
+      expect(chairTableGap).toBeCloseTo(0.15, 2);
+      expect(chairTableGap).toBeLessThan(
+        Math.max(chairItem.clearance.frontMeters, tableSideClearance),
+      );
     }
 
     expect(proposal.inputSnapshot.planningRoom.geometryStatus).toBe('inferred');
@@ -253,6 +299,15 @@ describe('synthetic design fixture', () => {
         ids.includes(table.id),
     );
     expect(clearanceIssue).toBeDefined();
+    const chairClearanceIssue = proposal.validation.issues.find(
+      ({ code, placementIds: ids }) =>
+        code === 'insufficient_clearance' &&
+        chairs.every(({ id }) => ids.includes(id)),
+    );
+    expect(chairClearanceIssue?.placementIds).toEqual([
+      ...chairs.map(({ id }) => id),
+      table.id,
+    ]);
     const openingIssue = proposal.validation.issues.find(
       ({ code }) => code === 'blocked_opening',
     );

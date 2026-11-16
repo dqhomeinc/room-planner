@@ -189,7 +189,7 @@
     "assumptions": [
       "This deliberately invalid layout exercises geometry, clearance, and opening warnings before the future layout validator exists."
     ],
-    "explanation": "The sofa and two chairs form a balanced conversation group around the coffee table.",
+    "explanation": "This deliberately invalid conversation layout meets furniture quantities but fails required furniture and doorway clearances.",
     "createdAt": "2026-11-15T12:10:00-05:00"
   }
 }
