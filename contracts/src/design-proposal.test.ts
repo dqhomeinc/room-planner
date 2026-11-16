@@ -98,6 +98,43 @@ describe('design proposal contract', () => {
     ).toThrow('error issues require invalid status');
   });
 
+  it('constrains issue severity and prevents uncertain valid proposals', () => {
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        validation: {
+          status: 'valid',
+          validatorVersion: '0.1.0',
+          issues: [
+            {
+              code: 'outside_room',
+              severity: 'info',
+              message: 'The sofa crosses the floor boundary.',
+              placementIds: [placement.id],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        validation: {
+          status: 'valid',
+          validatorVersion: '0.1.0',
+          issues: [
+            {
+              code: 'uncertain_geometry',
+              severity: 'warning',
+              message: 'The wall position is inferred.',
+              placementIds: [placement.id],
+            },
+          ],
+        },
+      }),
+    ).toThrow('valid proposals cannot contain errors or warnings');
+  });
+
   it('requires an error before using invalid status', () => {
     expect(() =>
       DesignProposalSchema.parse({
@@ -105,6 +142,12 @@ describe('design proposal contract', () => {
         validation: { ...proposal.validation, status: 'invalid' },
       }),
     ).toThrow('invalid proposals require an error issue');
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        validation: { ...proposal.validation, status: 'warning' },
+      }),
+    ).toThrow('warning status requires a warning issue');
   });
 
   it('rejects validation issues for missing placements', () => {
@@ -134,5 +177,41 @@ describe('design proposal contract', () => {
         parentProposalId: proposal.id,
       }),
     ).toThrow('a proposal cannot be its own parent');
+  });
+
+  it('requires a parent exactly after the first revision', () => {
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        revision: 2,
+      }),
+    ).toThrow('only revisions after the first require a parent');
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        parentProposalId: 'fe593153-bdef-4a9a-89fa-a12f1f235ee0',
+      }),
+    ).toThrow('only revisions after the first require a parent');
+  });
+
+  it('requires unique catalog snapshots and score kinds', () => {
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        inputSnapshot: {
+          ...proposal.inputSnapshot,
+          catalogItems: [
+            proposal.inputSnapshot.catalogItems[0],
+            proposal.inputSnapshot.catalogItems[0],
+          ],
+        },
+      }),
+    ).toThrow('catalog snapshots must contain unique items');
+    expect(() =>
+      DesignProposalSchema.parse({
+        ...proposal,
+        scores: [proposal.scores[0], proposal.scores[0]],
+      }),
+    ).toThrow('proposal score kinds must be unique');
   });
 });

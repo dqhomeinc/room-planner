@@ -28,26 +28,45 @@ export const FurniturePlacementSchema = z
     furnitureItemId: FurnitureItemIdSchema,
     transform: PlacementTransformSchema,
     locked: z.boolean(),
-    source: z.enum(['generated', 'user_moved', 'user_added', 'retained']),
+    source: z
+      .enum(['generated', 'user_moved', 'user_added', 'retained'])
+      .describe(
+        'How this placement entered its current state; retained and user-edited placements do not require a parent proposal.',
+      ),
   })
   .strict();
 
-export const ProposalIssueSchema = z
-  .object({
-    code: z.enum([
-      'outside_room',
-      'furniture_collision',
-      'blocked_opening',
-      'insufficient_clearance',
-      'uncertain_geometry',
-      'uncertain_dimensions',
-      'requirement_unsatisfied',
-    ]),
-    severity: z.enum(['error', 'warning', 'info']),
-    message: z.string().trim().min(1).max(320),
-    placementIds: z.array(PlacementIdSchema).max(16),
-  })
-  .strict();
+const issueDetails = {
+  message: z.string().trim().min(1).max(320),
+  placementIds: z.array(PlacementIdSchema).max(16),
+};
+
+export const ProposalIssueSchema = z.union([
+  z
+    .object({
+      code: z.enum([
+        'outside_room',
+        'furniture_collision',
+        'blocked_opening',
+        'insufficient_clearance',
+        'requirement_unsatisfied',
+      ]),
+      severity: z.literal('error'),
+      ...issueDetails,
+    })
+    .strict(),
+  z
+    .object({
+      code: z.enum([
+        'uncertain_geometry',
+        'uncertain_dimensions',
+        'uncertain_clearance',
+      ]),
+      severity: z.literal('warning'),
+      ...issueDetails,
+    })
+    .strict(),
+]);
 
 export const ProposalValidationSchema = z
   .object({
@@ -155,7 +174,14 @@ export const DesignProposalSchema = z
         path: ['parentProposalId'],
       });
     }
-
+    const requiresParent = proposal.revision > 1;
+    if (requiresParent !== Boolean(proposal.parentProposalId)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'only revisions after the first require a parent proposal',
+        path: ['parentProposalId'],
+      });
+    }
     const placementIds = proposal.placements.map(({ id }) => id);
     if (new Set(placementIds).size !== placementIds.length) {
       context.addIssue({
@@ -201,6 +227,15 @@ export const DesignProposalSchema = z
         });
       }
     });
+
+    const scoreKinds = proposal.scores.map(({ kind }) => kind);
+    if (new Set(scoreKinds).size !== scoreKinds.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'proposal score kinds must be unique',
+        path: ['scores'],
+      });
+    }
   });
 
 export type DesignProposalId = z.infer<typeof DesignProposalIdSchema>;
