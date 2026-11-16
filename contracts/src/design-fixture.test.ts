@@ -6,6 +6,7 @@ import { DesignProposalSchema } from './design-proposal';
 import { FurnitureItemSchema } from './furniture';
 import { PlanningRoomSchema } from './planning-room';
 
+// Stable for these simple fixture numbers; this is not a general RFC 8785 serializer.
 function canonicalize(value: unknown): string {
   if (value === null || typeof value !== 'object') {
     const serialized = JSON.stringify(value);
@@ -208,6 +209,10 @@ describe('synthetic design fixture', () => {
       wallEnd.y - wallStart.y,
     );
     expect(wallStart.y).toBe(wallEnd.y);
+    const sofaBottomY =
+      sofa.transform.position.y - sofaItem.dimensions.depthMeters / 2;
+    expect(sofaBottomY - wallStart.y).toBeCloseTo(0.2);
+    // This fixture-specific check measures lateral clearance beside a horizontal door wall.
     const wallDirectionX = (wallEnd.x - wallStart.x) / wallLength;
     const doorEndX =
       wallStart.x +
