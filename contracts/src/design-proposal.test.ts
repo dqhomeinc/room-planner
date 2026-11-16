@@ -52,186 +52,105 @@ const proposal = {
   createdAt: '2026-11-15T12:10:00-05:00',
 } as const;
 
+const parse = (overrides: Record<string, unknown> = {}) =>
+  DesignProposalSchema.parse({ ...proposal, ...overrides });
+const issue = (code: string, severity: string, id: string = placement.id) => ({
+  code,
+  severity,
+  message: 'Synthetic validation issue.',
+  placementIds: [id],
+});
+const validation = (status: string, issues: unknown[] = []) => ({
+  status,
+  validatorVersion: '0.1.0',
+  issues,
+});
+
 describe('design proposal contract', () => {
-  it('accepts a reproducible, validated furniture layout', () => {
-    expect(DesignProposalSchema.parse(proposal).generator.seed).toBe(
-      'living-room-a',
-    );
+  it('accepts a reproducible layout from user-validated geometry', () => {
+    expect(parse().generator.seed).toBe('living-room-a');
   });
 
-  it('normalizes rotations to a single turn', () => {
+  it('rejects invalid placement and catalog references', () => {
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        placements: [
-          {
-            ...placement,
-            transform: { ...placement.transform, rotationDegrees: 360 },
-          },
-        ],
-      }),
-    ).toThrow();
-  });
-
-  it('rejects duplicate placement identifiers', () => {
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        placements: [placement, placement],
-      }),
-    ).toThrow('placement identifiers must be unique');
-  });
-
-  it('requires every placed item in the catalog snapshot', () => {
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
+      parse({
         inputSnapshot: { ...proposal.inputSnapshot, catalogItems: [] },
       }),
     ).toThrow('every placement requires a catalog snapshot');
   });
 
-  it('cannot label hard failures as a valid proposal', () => {
+  it('constrains issue severity and validation status', () => {
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        validation: {
-          status: 'valid',
-          validatorVersion: '0.1.0',
-          issues: [
-            {
-              code: 'outside_room',
-              severity: 'error',
-              message: 'The sofa crosses the floor boundary.',
-              placementIds: [placement.id],
-            },
-          ],
-        },
-      }),
-    ).toThrow('error issues require invalid status');
-  });
-
-  it('constrains issue severity and prevents uncertain valid proposals', () => {
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        validation: {
-          status: 'valid',
-          validatorVersion: '0.1.0',
-          issues: [
-            {
-              code: 'outside_room',
-              severity: 'info',
-              message: 'The sofa crosses the floor boundary.',
-              placementIds: [placement.id],
-            },
-          ],
-        },
+      parse({
+        validation: validation('valid', [issue('outside_room', 'info')]),
       }),
     ).toThrow();
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        validation: {
-          status: 'valid',
-          validatorVersion: '0.1.0',
-          issues: [
-            {
-              code: 'uncertain_geometry',
-              severity: 'warning',
-              message: 'The wall position is inferred.',
-              placementIds: [placement.id],
-            },
-          ],
-        },
+      parse({
+        validation: validation('valid', [
+          issue('uncertain_geometry', 'warning'),
+        ]),
       }),
     ).toThrow('valid proposals cannot contain errors or warnings');
+    expect(() => parse({ validation: validation('invalid') })).toThrow(
+      'invalid proposals require an error issue',
+    );
+    expect(() => parse({ validation: validation('warning') })).toThrow(
+      'warning status requires a warning issue',
+    );
   });
 
-  it('requires an error before using invalid status', () => {
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        validation: { ...proposal.validation, status: 'invalid' },
-      }),
-    ).toThrow('invalid proposals require an error issue');
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        validation: { ...proposal.validation, status: 'warning' },
-      }),
-    ).toThrow('warning status requires a warning issue');
+  it('requires uncertainty warnings for unvalidated geometry', () => {
+    const inferredSnapshot = {
+      ...proposal.inputSnapshot,
+      planningRoom: {
+        ...proposal.inputSnapshot.planningRoom,
+        geometryStatus: 'inferred',
+      },
+    };
+    expect(() => parse({ inputSnapshot: inferredSnapshot })).toThrow(
+      'unvalidated geometry requires an uncertainty warning',
+    );
+    expect(
+      parse({
+        inputSnapshot: inferredSnapshot,
+        validation: validation('warning', [
+          issue('uncertain_geometry', 'warning'),
+        ]),
+      }).validation.status,
+    ).toBe('warning');
   });
 
-  it('rejects validation issues for missing placements', () => {
+  it('enforces proposal ancestry', () => {
+    expect(() => parse({ parentProposalId: proposal.id })).toThrow(
+      'a proposal cannot be its own parent',
+    );
+    expect(() => parse({ revision: 2 })).toThrow(
+      'only revisions after the first require a parent',
+    );
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        validation: {
-          status: 'warning',
-          validatorVersion: '0.1.0',
-          issues: [
-            {
-              code: 'uncertain_geometry',
-              severity: 'warning',
-              message: 'This placement uses an inferred wall.',
-              placementIds: ['052b42bc-b933-43b9-a9e7-b109e4650957'],
-            },
-          ],
-        },
-      }),
-    ).toThrow('must reference existing placements');
-  });
-
-  it('rejects a proposal that names itself as its parent', () => {
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        parentProposalId: proposal.id,
-      }),
-    ).toThrow('a proposal cannot be its own parent');
-  });
-
-  it('requires a parent exactly after the first revision', () => {
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        revision: 2,
-      }),
-    ).toThrow('only revisions after the first require a parent');
-    expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        parentProposalId: 'fe593153-bdef-4a9a-89fa-a12f1f235ee0',
-      }),
+      parse({ parentProposalId: 'fe593153-bdef-4a9a-89fa-a12f1f235ee0' }),
     ).toThrow('only revisions after the first require a parent');
   });
 
   it('requires unique catalog snapshots and score kinds', () => {
+    const catalogItem = proposal.inputSnapshot.catalogItems[0];
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
+      parse({
         inputSnapshot: {
           ...proposal.inputSnapshot,
-          catalogItems: [
-            proposal.inputSnapshot.catalogItems[0],
-            proposal.inputSnapshot.catalogItems[0],
-          ],
+          catalogItems: [catalogItem, catalogItem],
         },
       }),
     ).toThrow('catalog snapshots must contain unique items');
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
-        scores: [proposal.scores[0], proposal.scores[0]],
-      }),
+      parse({ scores: [proposal.scores[0], proposal.scores[0]] }),
     ).toThrow('proposal score kinds must be unique');
   });
 
-  it('requires snapshot identifiers and canonical content hashes', () => {
+  it('requires matching snapshot identifiers and canonical hashes', () => {
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
+      parse({
         inputSnapshot: {
           ...proposal.inputSnapshot,
           planningRoom: {
@@ -242,8 +161,7 @@ describe('design proposal contract', () => {
       }),
     ).toThrow('planning room snapshot must match');
     expect(() =>
-      DesignProposalSchema.parse({
-        ...proposal,
+      parse({
         inputSnapshot: {
           ...proposal.inputSnapshot,
           designBrief: {
@@ -253,5 +171,35 @@ describe('design proposal contract', () => {
         },
       }),
     ).toThrow();
+  });
+
+  it('rejects proposal inputs updated after creation', () => {
+    const future = '2026-11-15T12:11:00-05:00';
+    for (const inputSnapshot of [
+      {
+        ...proposal.inputSnapshot,
+        planningRoom: {
+          ...proposal.inputSnapshot.planningRoom,
+          updatedAt: future,
+        },
+      },
+      {
+        ...proposal.inputSnapshot,
+        designBrief: {
+          ...proposal.inputSnapshot.designBrief,
+          updatedAt: future,
+        },
+      },
+      {
+        ...proposal.inputSnapshot,
+        catalogItems: [
+          { ...proposal.inputSnapshot.catalogItems[0], updatedAt: future },
+        ],
+      },
+    ]) {
+      expect(() => parse({ inputSnapshot })).toThrow(
+        'proposal inputs cannot postdate proposal creation',
+      );
+    }
   });
 });

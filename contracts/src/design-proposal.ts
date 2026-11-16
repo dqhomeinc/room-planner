@@ -79,33 +79,19 @@ export const ProposalValidationSchema = z
   .superRefine(({ status, issues }, context) => {
     const hasError = issues.some(({ severity }) => severity === 'error');
     const hasWarning = issues.some(({ severity }) => severity === 'warning');
+    const rejectStatus = (message: string) =>
+      context.addIssue({ code: 'custom', message, path: ['status'] });
     if (status === 'invalid' && !hasError) {
-      context.addIssue({
-        code: 'custom',
-        message: 'invalid proposals require an error issue',
-        path: ['status'],
-      });
+      rejectStatus('invalid proposals require an error issue');
     }
     if (status !== 'invalid' && hasError) {
-      context.addIssue({
-        code: 'custom',
-        message: 'error issues require invalid status',
-        path: ['status'],
-      });
+      rejectStatus('error issues require invalid status');
     }
     if (status === 'warning' && !hasWarning) {
-      context.addIssue({
-        code: 'custom',
-        message: 'warning status requires a warning issue',
-        path: ['status'],
-      });
+      rejectStatus('warning status requires a warning issue');
     }
     if (status === 'valid' && (hasError || hasWarning)) {
-      context.addIssue({
-        code: 'custom',
-        message: 'valid proposals cannot contain errors or warnings',
-        path: ['status'],
-      });
+      rejectStatus('valid proposals cannot contain errors or warnings');
     }
   });
 
@@ -190,57 +176,84 @@ export const DesignProposalSchema = z
   })
   .strict()
   .superRefine((proposal, context) => {
+    const reject = (message: string, path: (string | number)[]) =>
+      context.addIssue({ code: 'custom', message, path });
     if (proposal.parentProposalId === proposal.id) {
-      context.addIssue({
-        code: 'custom',
-        message: 'a proposal cannot be its own parent',
-        path: ['parentProposalId'],
-      });
+      reject('a proposal cannot be its own parent', ['parentProposalId']);
     }
     const requiresParent = proposal.revision > 1;
     if (requiresParent !== Boolean(proposal.parentProposalId)) {
-      context.addIssue({
-        code: 'custom',
-        message: 'only revisions after the first require a parent proposal',
-        path: ['parentProposalId'],
-      });
+      reject('only revisions after the first require a parent proposal', [
+        'parentProposalId',
+      ]);
     }
     if (proposal.inputSnapshot.planningRoom.id !== proposal.planningRoomId) {
-      context.addIssue({
-        code: 'custom',
-        message: 'planning room snapshot must match the proposal room',
-        path: ['inputSnapshot', 'planningRoom', 'id'],
-      });
+      reject('planning room snapshot must match the proposal room', [
+        'inputSnapshot',
+        'planningRoom',
+        'id',
+      ]);
     }
     if (proposal.inputSnapshot.designBrief.id !== proposal.designBriefId) {
-      context.addIssue({
-        code: 'custom',
-        message: 'design brief snapshot must match the proposal brief',
-        path: ['inputSnapshot', 'designBrief', 'id'],
-      });
+      reject('design brief snapshot must match the proposal brief', [
+        'inputSnapshot',
+        'designBrief',
+        'id',
+      ]);
     }
+    const geometryIsValidated =
+      proposal.inputSnapshot.planningRoom.geometryStatus === 'user_validated';
+    const hasGeometryWarning = proposal.validation.issues.some(
+      ({ code }) => code === 'uncertain_geometry',
+    );
+    if (!geometryIsValidated && !hasGeometryWarning) {
+      reject('unvalidated geometry requires an uncertainty warning', [
+        'validation',
+        'issues',
+      ]);
+    }
+
+    const proposalTime = Date.parse(proposal.createdAt);
+    const rejectFutureInput = (
+      updatedAt: string,
+      path: (string | number)[],
+    ) => {
+      if (Date.parse(updatedAt) > proposalTime) {
+        reject('proposal inputs cannot postdate proposal creation', path);
+      }
+    };
+    rejectFutureInput(proposal.inputSnapshot.planningRoom.updatedAt, [
+      'inputSnapshot',
+      'planningRoom',
+      'updatedAt',
+    ]);
+    rejectFutureInput(proposal.inputSnapshot.designBrief.updatedAt, [
+      'inputSnapshot',
+      'designBrief',
+      'updatedAt',
+    ]);
+    proposal.inputSnapshot.catalogItems.forEach((item, index) =>
+      rejectFutureInput(item.updatedAt, [
+        'inputSnapshot',
+        'catalogItems',
+        index,
+        'updatedAt',
+      ]),
+    );
     const placementIds = proposal.placements.map(({ id }) => id);
     if (new Set(placementIds).size !== placementIds.length) {
-      context.addIssue({
-        code: 'custom',
-        message: 'placement identifiers must be unique',
-        path: ['placements'],
-      });
+      reject('placement identifiers must be unique', ['placements']);
     }
     proposal.validation.issues.forEach((issue, issueIndex) => {
       issue.placementIds.forEach((placementId, placementIndex) => {
         if (!placementIds.includes(placementId)) {
-          context.addIssue({
-            code: 'custom',
-            message: 'validation issues must reference existing placements',
-            path: [
-              'validation',
-              'issues',
-              issueIndex,
-              'placementIds',
-              placementIndex,
-            ],
-          });
+          reject('validation issues must reference existing placements', [
+            'validation',
+            'issues',
+            issueIndex,
+            'placementIds',
+            placementIndex,
+          ]);
         }
       });
     });
@@ -249,29 +262,24 @@ export const DesignProposalSchema = z
       ({ furnitureItemId }) => furnitureItemId,
     );
     if (new Set(catalogIds).size !== catalogIds.length) {
-      context.addIssue({
-        code: 'custom',
-        message: 'catalog snapshots must contain unique items',
-        path: ['inputSnapshot', 'catalogItems'],
-      });
+      reject('catalog snapshots must contain unique items', [
+        'inputSnapshot',
+        'catalogItems',
+      ]);
     }
     proposal.placements.forEach((placement, index) => {
       if (!catalogIds.includes(placement.furnitureItemId)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'every placement requires a catalog snapshot',
-          path: ['placements', index, 'furnitureItemId'],
-        });
+        reject('every placement requires a catalog snapshot', [
+          'placements',
+          index,
+          'furnitureItemId',
+        ]);
       }
     });
 
     const scoreKinds = proposal.scores.map(({ kind }) => kind);
     if (new Set(scoreKinds).size !== scoreKinds.length) {
-      context.addIssue({
-        code: 'custom',
-        message: 'proposal score kinds must be unique',
-        path: ['scores'],
-      });
+      reject('proposal score kinds must be unique', ['scores']);
     }
   });
 
