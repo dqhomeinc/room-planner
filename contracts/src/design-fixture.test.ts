@@ -138,6 +138,14 @@ describe('synthetic design fixture', () => {
       );
     }
 
+    const xCoordinates = room.floorBoundary.map(({ x }) => x);
+    const yCoordinates = room.floorBoundary.map(({ y }) => y);
+    const bounds = {
+      minX: Math.min(...xCoordinates),
+      maxX: Math.max(...xCoordinates),
+      minY: Math.min(...yCoordinates),
+      maxY: Math.max(...yCoordinates),
+    };
     const categoryCounts = new Map<string, number>();
     for (const placed of proposal.placements) {
       const item = furnitureById.get(placed.furnitureItemId);
@@ -158,10 +166,10 @@ describe('synthetic design fixture', () => {
       ]) {
         const worldX = placed.transform.position.x + x * cos - y * sin;
         const worldY = placed.transform.position.y + x * sin + y * cos;
-        expect(worldX).toBeGreaterThanOrEqual(0);
-        expect(worldX).toBeLessThanOrEqual(5);
-        expect(worldY).toBeGreaterThanOrEqual(0);
-        expect(worldY).toBeLessThanOrEqual(4);
+        expect(worldX).toBeGreaterThanOrEqual(bounds.minX);
+        expect(worldX).toBeLessThanOrEqual(bounds.maxX);
+        expect(worldY).toBeGreaterThanOrEqual(bounds.minY);
+        expect(worldY).toBeLessThanOrEqual(bounds.maxY);
       }
     }
     for (const requirement of brief.furnitureRequirements) {
@@ -175,6 +183,42 @@ describe('synthetic design fixture', () => {
       ({ furnitureItemId }) =>
         furnitureById.get(furnitureItemId)?.category === 'table',
     )!;
+    const tableItem = furnitureById.get(table.furnitureItemId)!;
+    const sofa = proposal.placements.find(({ furnitureItemId }) =>
+      furnitureById
+        .get(furnitureItemId)
+        ?.design.functionTags.includes('three-seat'),
+    )!;
+    const sofaItem = furnitureById.get(sofa.furnitureItemId)!;
+    expect(sofa.transform.rotationDegrees).toBe(0);
+    expect(table.transform.rotationDegrees).toBe(0);
+    const sofaTableGap =
+      table.transform.position.y -
+      tableItem.dimensions.depthMeters / 2 -
+      (sofa.transform.position.y + sofaItem.dimensions.depthMeters / 2);
+    expect(sofaTableGap).toBeCloseTo(0.4);
+    expect(sofaTableGap).toBeLessThan(sofaItem.clearance.frontMeters);
+
+    const door = room.openings.find(({ kind }) => kind === 'door')!;
+    const wallStart = room.floorBoundary[door.wallIndex];
+    const wallEnd =
+      room.floorBoundary[(door.wallIndex + 1) % room.floorBoundary.length];
+    const wallLength = Math.hypot(
+      wallEnd.x - wallStart.x,
+      wallEnd.y - wallStart.y,
+    );
+    const wallDirectionX = (wallEnd.x - wallStart.x) / wallLength;
+    const doorEndX =
+      wallStart.x +
+      wallDirectionX * (door.startOffset.meters + door.width.meters);
+    const sofaLeftX =
+      sofa.transform.position.x - sofaItem.dimensions.widthMeters / 2;
+    const sofaDoorGap = sofaLeftX - doorEndX;
+    expect(sofaDoorGap).toBeCloseTo(0.1);
+    expect(sofaDoorGap).toBeLessThanOrEqual(
+      sofaItem.clearance.leftMeters + Number.EPSILON,
+    );
+
     for (const chair of proposal.placements.filter(
       ({ furnitureItemId }) => furnitureItemId === furniture[1].id,
     )) {
@@ -192,11 +236,26 @@ describe('synthetic design fixture', () => {
 
     expect(proposal.inputSnapshot.planningRoom.geometryStatus).toBe('inferred');
     expect(proposal.validation.status).toBe('invalid');
+    const placementIds = new Set(proposal.placements.map(({ id }) => id));
+    for (const issue of proposal.validation.issues) {
+      expect(issue.placementIds.every((id) => placementIds.has(id))).toBe(true);
+    }
     expect(proposal.validation.issues.map(({ code }) => code)).toEqual([
       'uncertain_geometry',
       'insufficient_clearance',
       'insufficient_clearance',
       'blocked_opening',
     ]);
+    const clearanceIssue = proposal.validation.issues.find(
+      ({ code, placementIds: ids }) =>
+        code === 'insufficient_clearance' &&
+        ids.includes(sofa.id) &&
+        ids.includes(table.id),
+    );
+    expect(clearanceIssue).toBeDefined();
+    const openingIssue = proposal.validation.issues.find(
+      ({ code }) => code === 'blocked_opening',
+    );
+    expect(openingIssue?.placementIds).toEqual([sofa.id]);
   });
 });
