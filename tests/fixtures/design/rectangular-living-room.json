@@ -117,8 +117,8 @@
         "depthMeters": 0.9,
         "heightMeters": 0.82,
         "provenance": {
-          "source": "curated_measurement",
-          "confidence": 1,
+          "source": "estimated",
+          "confidence": 0.5,
           "sourceReference": "synthetic-catalog-v1"
         }
       },
@@ -152,8 +152,8 @@
         "depthMeters": 0.82,
         "heightMeters": 0.86,
         "provenance": {
-          "source": "curated_measurement",
-          "confidence": 1,
+          "source": "estimated",
+          "confidence": 0.5,
           "sourceReference": "synthetic-catalog-v1"
         }
       },
@@ -187,8 +187,8 @@
         "depthMeters": 0.6,
         "heightMeters": 0.42,
         "provenance": {
-          "source": "curated_measurement",
-          "confidence": 1,
+          "source": "estimated",
+          "confidence": 0.5,
           "sourceReference": "synthetic-catalog-v1"
         }
       },
