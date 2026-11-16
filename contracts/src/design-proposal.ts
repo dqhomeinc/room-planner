@@ -201,13 +201,14 @@ export const DesignProposalSchema = z
         'id',
       ]);
     }
-    const geometryIsValidated =
-      proposal.inputSnapshot.planningRoom.geometryStatus === 'user_validated';
+    const geometryIsCertain =
+      proposal.inputSnapshot.planningRoom.geometryStatus === 'user_validated' &&
+      proposal.inputSnapshot.planningRoom.minimumGeometryConfidence === 1;
     const hasGeometryWarning = proposal.validation.issues.some(
       ({ code }) => code === 'uncertain_geometry',
     );
-    if (!geometryIsValidated && !hasGeometryWarning) {
-      reject('unvalidated geometry requires an uncertainty warning', [
+    if (!geometryIsCertain && !hasGeometryWarning) {
+      reject('uncertain geometry requires an uncertainty warning', [
         'validation',
         'issues',
       ]);
@@ -245,6 +246,14 @@ export const DesignProposalSchema = z
       reject('placement identifiers must be unique', ['placements']);
     }
     proposal.validation.issues.forEach((issue, issueIndex) => {
+      if (new Set(issue.placementIds).size !== issue.placementIds.length) {
+        reject('issue placement identifiers must be unique', [
+          'validation',
+          'issues',
+          issueIndex,
+          'placementIds',
+        ]);
+      }
       issue.placementIds.forEach((placementId, placementIndex) => {
         if (!placementIds.includes(placementId)) {
           reject('validation issues must reference existing placements', [

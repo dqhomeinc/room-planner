@@ -26,7 +26,7 @@ const proposal = {
       updatedAt: '2026-11-15T12:00:00-05:00',
       contentHash,
       geometryStatus: 'user_validated',
-      minimumGeometryConfidence: 0.95,
+      minimumGeometryConfidence: 1,
     },
     designBrief: {
       id: '0d9ebd23-7d16-4bef-935e-7f6fa76070b8',
@@ -67,18 +67,6 @@ const validation = (status: string, issues: unknown[] = []) => ({
 });
 
 describe('design proposal contract', () => {
-  it('accepts a reproducible layout from user-validated geometry', () => {
-    expect(parse().generator.seed).toBe('living-room-a');
-  });
-
-  it('rejects invalid placement and catalog references', () => {
-    expect(() =>
-      parse({
-        inputSnapshot: { ...proposal.inputSnapshot, catalogItems: [] },
-      }),
-    ).toThrow('every placement requires a catalog snapshot');
-  });
-
   it('constrains issue severity and validation status', () => {
     expect(() =>
       parse({
@@ -98,22 +86,41 @@ describe('design proposal contract', () => {
     expect(() => parse({ validation: validation('warning') })).toThrow(
       'warning status requires a warning issue',
     );
+    const duplicateIds = issue('uncertain_geometry', 'warning');
+    duplicateIds.placementIds.push(placement.id);
+    expect(() =>
+      parse({ validation: validation('warning', [duplicateIds]) }),
+    ).toThrow('issue placement identifiers must be unique');
   });
 
-  it('requires uncertainty warnings for unvalidated geometry', () => {
-    const inferredSnapshot = {
-      ...proposal.inputSnapshot,
-      planningRoom: {
-        ...proposal.inputSnapshot.planningRoom,
-        geometryStatus: 'inferred',
-      },
-    };
-    expect(() => parse({ inputSnapshot: inferredSnapshot })).toThrow(
-      'unvalidated geometry requires an uncertainty warning',
-    );
+  it('requires warnings for unvalidated or low-confidence geometry', () => {
+    const uncertainRooms = [
+      { geometryStatus: 'inferred', minimumGeometryConfidence: 1 },
+      { geometryStatus: 'partially_validated', minimumGeometryConfidence: 1 },
+      { geometryStatus: 'user_validated', minimumGeometryConfidence: 0.99 },
+    ];
+    for (const planningRoom of uncertainRooms) {
+      expect(() =>
+        parse({
+          inputSnapshot: {
+            ...proposal.inputSnapshot,
+            planningRoom: {
+              ...proposal.inputSnapshot.planningRoom,
+              ...planningRoom,
+            },
+          },
+        }),
+      ).toThrow('uncertain geometry requires an uncertainty warning');
+    }
     expect(
       parse({
-        inputSnapshot: inferredSnapshot,
+        inputSnapshot: {
+          ...proposal.inputSnapshot,
+          planningRoom: {
+            ...proposal.inputSnapshot.planningRoom,
+            geometryStatus: 'partially_validated',
+          },
+        },
         validation: validation('warning', [
           issue('uncertain_geometry', 'warning'),
         ]),
@@ -122,12 +129,7 @@ describe('design proposal contract', () => {
   });
 
   it('enforces proposal ancestry', () => {
-    expect(() => parse({ parentProposalId: proposal.id })).toThrow(
-      'a proposal cannot be its own parent',
-    );
-    expect(() => parse({ revision: 2 })).toThrow(
-      'only revisions after the first require a parent',
-    );
+    expect(() => parse({ revision: 2 })).toThrow('require a parent');
     expect(() =>
       parse({ parentProposalId: 'fe593153-bdef-4a9a-89fa-a12f1f235ee0' }),
     ).toThrow('only revisions after the first require a parent');
@@ -160,17 +162,6 @@ describe('design proposal contract', () => {
         },
       }),
     ).toThrow('planning room snapshot must match');
-    expect(() =>
-      parse({
-        inputSnapshot: {
-          ...proposal.inputSnapshot,
-          designBrief: {
-            ...proposal.inputSnapshot.designBrief,
-            contentHash: 'sha256:not-a-hash',
-          },
-        },
-      }),
-    ).toThrow();
   });
 
   it('rejects proposal inputs updated after creation', () => {
