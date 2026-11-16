@@ -40,7 +40,10 @@
     },
     "budget": { "kind": "flexible" },
     "freeformRequest": "Create an inviting conversation area and keep the doorway clear.",
-    "interpretation": { "source": "structured_controls" },
+    "interpretation": {
+      "source": "mixed",
+      "interpreterVersion": "synthetic-fixture-1.0.0"
+    },
     "assumptions": [
       {
         "id": "36b76dd6-eb6f-450c-a51f-7bc8ec800006",
@@ -61,20 +64,34 @@
     "revision": 1,
     "name": "Balanced conversation layout",
     "inputSnapshot": {
-      "planningRoomUpdatedAt": "2026-11-15T12:00:00-05:00",
-      "designBriefUpdatedAt": "2026-11-15T12:05:00-05:00",
+      "hashAlgorithm": "sha256-rfc8785",
+      "planningRoom": {
+        "id": "a691b626-419c-4c12-8d43-28abc335bb45",
+        "updatedAt": "2026-11-15T12:00:00-05:00",
+        "contentHash": "sha256:464bbbc7d8630a90ba8a405afe70c1469d82ee9001b133f3a9b6f92185811328",
+        "geometryStatus": "inferred",
+        "minimumGeometryConfidence": 1
+      },
+      "designBrief": {
+        "id": "6429ff96-7652-42fe-826d-47799d8b47c6",
+        "updatedAt": "2026-11-15T12:05:00-05:00",
+        "contentHash": "sha256:cf28f8496ed356d497ca4e978024547b192762adb06c747d5df10779a49644c6"
+      },
       "catalogItems": [
         {
           "furnitureItemId": "49cc0f3d-7344-43ce-a60a-b538597ef383",
-          "updatedAt": "2026-11-15T12:00:00-05:00"
+          "updatedAt": "2026-11-15T12:00:00-05:00",
+          "contentHash": "sha256:9d31183b062120776ac5867f8246c84052a94f8f0e6f12305319a3eb19990a52"
         },
         {
           "furnitureItemId": "4fcf181a-1077-4d3d-a7eb-e19269f9b055",
-          "updatedAt": "2026-11-15T12:00:00-05:00"
+          "updatedAt": "2026-11-15T12:00:00-05:00",
+          "contentHash": "sha256:81238bda5b6e92fa44675fa803155a3461b9034de4526ac64ae11382f51d1084"
         },
         {
           "furnitureItemId": "3fc47fc8-c6e8-4473-bab0-b1288878f122",
-          "updatedAt": "2026-11-15T12:00:00-05:00"
+          "updatedAt": "2026-11-15T12:00:00-05:00",
+          "contentHash": "sha256:46c9c2320906afda6d93a1a8f29c322d2e8310f81c29fe06d9d8e60b102b6685"
         }
       ]
     },
@@ -126,9 +143,16 @@
       }
     ],
     "validation": {
-      "status": "valid",
+      "status": "warning",
       "validatorVersion": "synthetic-fixture-1.0.0",
-      "issues": []
+      "issues": [
+        {
+          "code": "uncertain_geometry",
+          "severity": "warning",
+          "message": "Synthetic template geometry has not been user-validated.",
+          "placementIds": []
+        }
+      ]
     },
     "scores": [
       {

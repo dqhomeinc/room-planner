@@ -68,5 +68,7 @@ describe('synthetic design fixture', () => {
     expect(proposal.planningRoomId).toBe(room.id);
     expect(proposal.designBriefId).toBe(brief.id);
     expect(proposal.placements).toHaveLength(4);
+    expect(proposal.inputSnapshot.planningRoom.geometryStatus).toBe('inferred');
+    expect(proposal.validation.status).toBe('warning');
   });
 });
