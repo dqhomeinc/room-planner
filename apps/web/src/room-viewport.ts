@@ -28,29 +28,32 @@ function requirePositive(name: string, value: number): void {
   if (value <= 0) throw new RangeError(`${name} must be greater than zero`);
 }
 
+/** Computes axis-aligned bounds; polygon topology is validated by the room contract. */
 export function boundsFromPoints(points: readonly WorldPoint[]): WorldBounds {
   if (points.length < 3) {
     throw new RangeError('at least three world points are required');
   }
 
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
   for (const point of points) {
     requireFinite('point.x', point.x);
     requireFinite('point.y', point.y);
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
   }
 
-  const xs = points.map(({ x }) => x);
-  const ys = points.map(({ y }) => y);
-  const bounds = {
-    minX: Math.min(...xs),
-    minY: Math.min(...ys),
-    maxX: Math.max(...xs),
-    maxY: Math.max(...ys),
-  };
+  const bounds = { minX, minY, maxX, maxY };
   requirePositive('world width', bounds.maxX - bounds.minX);
   requirePositive('world height', bounds.maxY - bounds.minY);
   return bounds;
 }
 
+/** Call only after the measured container is larger than twice the padding. */
 export function createRoomViewport(
   bounds: WorldBounds,
   size: ViewportSize,
@@ -123,9 +126,11 @@ export function chooseGridStepMeters(
   requirePositive('pixels per meter', pixelsPerMeter);
   requirePositive('minimum grid spacing', minimumPixels);
   const minimumMeters = minimumPixels / pixelsPerMeter;
+  requireFinite('minimum grid step', minimumMeters);
   const magnitude = 10 ** Math.floor(Math.log10(minimumMeters));
-  return (
+  const step =
     [1, 2, 5, 10].find((multiple) => multiple * magnitude >= minimumMeters)! *
-    magnitude
-  );
+    magnitude;
+  requireFinite('grid step', step);
+  return step;
 }

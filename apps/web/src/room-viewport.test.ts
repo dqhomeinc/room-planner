@@ -21,6 +21,16 @@ describe('room viewport', () => {
     ).toEqual({ minX: 2, minY: -1, maxX: 7, maxY: 3 });
   });
 
+  it('computes bounds without taking responsibility for polygon topology', () => {
+    expect(
+      boundsFromPoints([
+        { x: 0, y: 0 },
+        { x: 1, y: 1 },
+        { x: 2, y: 2 },
+      ]),
+    ).toEqual({ minX: 0, minY: 0, maxX: 2, maxY: 2 });
+  });
+
   it('fits the room with centered padding in a wide viewport', () => {
     const viewport = createRoomViewport(
       bounds,
@@ -45,6 +55,12 @@ describe('room viewport', () => {
     expect(viewport.pixelsPerMeter).toBeCloseTo(57.6);
     expect(viewport.offsetX).toBe(16);
     expect(viewport.offsetY).toBeCloseTo(164.8);
+    const lowerLeft = worldToScreen(viewport, { x: 0, y: 0 });
+    const upperRight = worldToScreen(viewport, { x: 5, y: 4 });
+    expect(lowerLeft.x).toBe(16);
+    expect(lowerLeft.y).toBeCloseTo(395.2);
+    expect(upperRight.x).toBe(304);
+    expect(upperRight.y).toBeCloseTo(164.8);
   });
 
   it('uses world y-up and screen y-down coordinates', () => {
@@ -69,6 +85,20 @@ describe('room viewport', () => {
     expect(restored.y).toBeCloseTo(world.y);
   });
 
+  it('maps known screen positions back to world coordinates', () => {
+    const viewport = createRoomViewport(
+      bounds,
+      { width: 600, height: 400 },
+      20,
+    );
+
+    expect(screenToWorld(viewport, { x: 75, y: 380 })).toEqual({ x: 0, y: 0 });
+    expect(screenToWorld(viewport, { x: 300, y: 200 })).toEqual({
+      x: 2.5,
+      y: 2,
+    });
+  });
+
   it.each([
     [100, 28, 0.5],
     [40, 28, 1],
@@ -80,6 +110,17 @@ describe('room viewport', () => {
       expect(chooseGridStepMeters(pixelsPerMeter, minimumPixels)).toBe(
         expectedMeters,
       );
+    },
+  );
+
+  it.each([
+    [28, 1],
+    [14, 2],
+    [5.6, 5],
+  ])(
+    'keeps an exact grid boundary of %s px/m at %s meters',
+    (pixelsPerMeter, expectedMeters) => {
+      expect(chooseGridStepMeters(pixelsPerMeter, 28)).toBe(expectedMeters);
     },
   );
 
@@ -96,6 +137,28 @@ describe('room viewport', () => {
     ).toThrow('drawable width must be greater than zero');
     expect(() => chooseGridStepMeters(0)).toThrow(
       'pixels per meter must be greater than zero',
+    );
+  });
+
+  it('rejects non-finite inputs, negative padding, and grid overflow', () => {
+    expect(() =>
+      boundsFromPoints([
+        { x: 0, y: 0 },
+        { x: 1, y: Number.NaN },
+        { x: 1, y: 1 },
+      ]),
+    ).toThrow('point.y must be finite');
+    expect(() =>
+      createRoomViewport(bounds, {
+        width: Number.POSITIVE_INFINITY,
+        height: 400,
+      }),
+    ).toThrow('viewport width must be finite');
+    expect(() =>
+      createRoomViewport(bounds, { width: 600, height: 400 }, -1),
+    ).toThrow('padding cannot be negative');
+    expect(() => chooseGridStepMeters(1e-320)).toThrow(
+      'minimum grid step must be finite',
     );
   });
 });
