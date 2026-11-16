@@ -6,6 +6,46 @@ import { DesignProposalSchema } from './design-proposal';
 import { FurnitureItemSchema } from './furniture';
 import { PlanningRoomSchema } from './planning-room';
 
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    const serialized = JSON.stringify(value);
+    if (serialized === undefined) throw new TypeError('unsupported JSON value');
+    return serialized;
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalize(record[key])}`)
+    .join(',')}}`;
+}
+
+function utf8(value: string): Uint8Array {
+  const encoded = encodeURIComponent(value);
+  const bytes: number[] = [];
+  for (let index = 0; index < encoded.length; index += 1) {
+    if (encoded[index] === '%') {
+      bytes.push(Number.parseInt(encoded.slice(index + 1, index + 3), 16));
+      index += 2;
+    } else bytes.push(encoded.charCodeAt(index));
+  }
+  return Uint8Array.from(bytes);
+}
+
+async function contentHash(value: unknown): Promise<string> {
+  type Subtle = {
+    digest: (name: string, data: Uint8Array) => Promise<ArrayBuffer>;
+  };
+  const subtle = (globalThis as { crypto?: { subtle?: Subtle } }).crypto
+    ?.subtle;
+  if (!subtle) throw new Error('Web Crypto is required for fixture hashing');
+  const digest = await subtle.digest('SHA-256', utf8(canonicalize(value)));
+  const hex = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+  return `sha256:${hex}`;
+}
+
 describe('synthetic design fixture', () => {
   it('contains a valid room and starter furniture catalog', () => {
     const room = PlanningRoomSchema.parse(fixture.room);
@@ -59,16 +99,104 @@ describe('synthetic design fixture', () => {
     );
   });
 
-  it('contains a brief and proposal tied to the room and catalog', () => {
+  it('contains a brief and proposal tied to exact room and catalog inputs', async () => {
     const room = PlanningRoomSchema.parse(fixture.room);
     const brief = DesignBriefSchema.parse(designFixture.brief);
     const proposal = DesignProposalSchema.parse(designFixture.proposal);
+    const furniture = fixture.furnitureItems.map((item) =>
+      FurnitureItemSchema.parse(item),
+    );
+    const furnitureById = new Map(furniture.map((item) => [item.id, item]));
+    const snapshotById = new Map(
+      proposal.inputSnapshot.catalogItems.map((item) => [
+        item.furnitureItemId,
+        item,
+      ]),
+    );
 
+    expect(
+      new Set([room.projectId, brief.projectId, proposal.projectId]).size,
+    ).toBe(1);
     expect(brief.planningRoomId).toBe(room.id);
     expect(proposal.planningRoomId).toBe(room.id);
     expect(proposal.designBriefId).toBe(brief.id);
-    expect(proposal.placements).toHaveLength(4);
+    expect(proposal.inputSnapshot.planningRoom.updatedAt).toBe(room.updatedAt);
+    expect(proposal.inputSnapshot.designBrief.updatedAt).toBe(brief.updatedAt);
+    expect(proposal.inputSnapshot.planningRoom.contentHash).toBe(
+      await contentHash(fixture.room),
+    );
+    expect(proposal.inputSnapshot.designBrief.contentHash).toBe(
+      await contentHash(designFixture.brief),
+    );
+    expect([...snapshotById.keys()].sort()).toEqual(
+      furniture.map(({ id }) => id).sort(),
+    );
+    for (const item of furniture) {
+      expect(snapshotById.get(item.id)?.updatedAt).toBe(item.updatedAt);
+      expect(snapshotById.get(item.id)?.contentHash).toBe(
+        await contentHash(item),
+      );
+    }
+
+    const categoryCounts = new Map<string, number>();
+    for (const placed of proposal.placements) {
+      const item = furnitureById.get(placed.furnitureItemId);
+      expect(item).toBeDefined();
+      categoryCounts.set(
+        item!.category,
+        (categoryCounts.get(item!.category) ?? 0) + 1,
+      );
+
+      const angle = (placed.transform.rotationDegrees * Math.PI) / 180;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      for (const [x, y] of [
+        [-item!.dimensions.widthMeters / 2, -item!.dimensions.depthMeters / 2],
+        [item!.dimensions.widthMeters / 2, -item!.dimensions.depthMeters / 2],
+        [item!.dimensions.widthMeters / 2, item!.dimensions.depthMeters / 2],
+        [-item!.dimensions.widthMeters / 2, item!.dimensions.depthMeters / 2],
+      ]) {
+        const worldX = placed.transform.position.x + x * cos - y * sin;
+        const worldY = placed.transform.position.y + x * sin + y * cos;
+        expect(worldX).toBeGreaterThanOrEqual(0);
+        expect(worldX).toBeLessThanOrEqual(5);
+        expect(worldY).toBeGreaterThanOrEqual(0);
+        expect(worldY).toBeLessThanOrEqual(4);
+      }
+    }
+    for (const requirement of brief.furnitureRequirements) {
+      const count = categoryCounts.get(requirement.category) ?? 0;
+      expect(count).toBeGreaterThanOrEqual(requirement.minimumQuantity);
+      expect(count).toBeLessThanOrEqual(requirement.maximumQuantity);
+    }
+
+    // World x points right, y points up, and positive rotation is counter-clockwise.
+    const table = proposal.placements.find(
+      ({ furnitureItemId }) =>
+        furnitureById.get(furnitureItemId)?.category === 'table',
+    )!;
+    for (const chair of proposal.placements.filter(
+      ({ furnitureItemId }) => furnitureItemId === furniture[1].id,
+    )) {
+      const angle = (chair.transform.rotationDegrees * Math.PI) / 180;
+      const front = { x: -Math.sin(angle), y: Math.cos(angle) };
+      const toward = {
+        x: table.transform.position.x - chair.transform.position.x,
+        y: table.transform.position.y - chair.transform.position.y,
+      };
+      const alignment =
+        (front.x * toward.x + front.y * toward.y) /
+        Math.hypot(toward.x, toward.y);
+      expect(alignment).toBeGreaterThan(0.99);
+    }
+
     expect(proposal.inputSnapshot.planningRoom.geometryStatus).toBe('inferred');
-    expect(proposal.validation.status).toBe('warning');
+    expect(proposal.validation.status).toBe('invalid');
+    expect(proposal.validation.issues.map(({ code }) => code)).toEqual([
+      'uncertain_geometry',
+      'insufficient_clearance',
+      'insufficient_clearance',
+      'blocked_opening',
+    ]);
   });
 });

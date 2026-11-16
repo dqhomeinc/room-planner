@@ -116,7 +116,7 @@
         "furnitureItemId": "4fcf181a-1077-4d3d-a7eb-e19269f9b055",
         "transform": {
           "position": { "x": 1.25, "y": 2.5 },
-          "rotationDegrees": 300
+          "rotationDegrees": 240
         },
         "locked": false,
         "source": "generated"
@@ -126,7 +126,7 @@
         "furnitureItemId": "4fcf181a-1077-4d3d-a7eb-e19269f9b055",
         "transform": {
           "position": { "x": 3.75, "y": 2.5 },
-          "rotationDegrees": 60
+          "rotationDegrees": 120
         },
         "locked": false,
         "source": "generated"
@@ -143,7 +143,7 @@
       }
     ],
     "validation": {
-      "status": "warning",
+      "status": "invalid",
       "validatorVersion": "synthetic-fixture-1.0.0",
       "issues": [
         {
@@ -151,23 +151,43 @@
           "severity": "warning",
           "message": "Synthetic template geometry has not been user-validated.",
           "placementIds": []
+        },
+        {
+          "code": "insufficient_clearance",
+          "severity": "error",
+          "message": "The sofa and coffee table do not meet their required clearance.",
+          "placementIds": [
+            "81b45446-4453-46b6-b1d2-4fda416c01a1",
+            "be861a03-4ee9-4f41-9c6b-67a537814863"
+          ]
+        },
+        {
+          "code": "insufficient_clearance",
+          "severity": "error",
+          "message": "The lounge chairs and coffee table do not meet their required clearance.",
+          "placementIds": [
+            "6691995e-fda7-4908-9567-73b9c08be1b9",
+            "fd111a70-0eea-48df-85c5-249c034a487a",
+            "be861a03-4ee9-4f41-9c6b-67a537814863"
+          ]
+        },
+        {
+          "code": "blocked_opening",
+          "severity": "error",
+          "message": "The sofa does not preserve the requested doorway clearance.",
+          "placementIds": ["81b45446-4453-46b6-b1d2-4fda416c01a1"]
         }
       ]
     },
     "scores": [
       {
-        "kind": "circulation",
-        "value": 0.9,
-        "explanation": "The entrance path remains open."
-      },
-      {
         "kind": "brief_fit",
-        "value": 0.95,
-        "explanation": "The layout seats five around a shared surface."
+        "value": 0.6,
+        "explanation": "The layout meets furniture quantities but fails clearance requirements."
       }
     ],
     "assumptions": [
-      "Synthetic placement is contract-valid but has not yet run through the future geometry validator."
+      "This deliberately invalid layout exercises geometry, clearance, and opening warnings before the future layout validator exists."
     ],
     "explanation": "The sofa and two chairs form a balanced conversation group around the coffee table.",
     "createdAt": "2026-11-15T12:10:00-05:00"
