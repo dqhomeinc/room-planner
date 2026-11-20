@@ -105,6 +105,25 @@ describe('room plan surface', () => {
     expect(markup).not.toContain('<svg');
   });
 
+  it('exposes keyboard-focusable corner controls only in edit mode', () => {
+    const editableMarkup = renderToStaticMarkup(
+      <RoomPlanSurface
+        boundary={boundary}
+        provenance="validated"
+        editable
+        onBoundaryChange={() => undefined}
+      />,
+    );
+    const staticMarkup = renderToStaticMarkup(
+      <RoomPlanSurface boundary={boundary} provenance="validated" />,
+    );
+
+    expect(editableMarkup.match(/role="button"/g)).toHaveLength(4);
+    expect(editableMarkup).toContain('aria-label="Move corner 1"');
+    expect(editableMarkup).toContain('role="group"');
+    expect(staticMarkup).not.toContain('aria-label="Move corner 1"');
+  });
+
   it('rethrows unexpected rendering errors', () => {
     const unexpected = new Error('unexpected rendering failure');
     const boundaryWithFailure = [

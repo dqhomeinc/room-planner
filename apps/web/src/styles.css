@@ -425,6 +425,34 @@ h2 {
   vector-effect: non-scaling-stroke;
 }
 
+.room-plan.is-editable svg {
+  touch-action: none;
+}
+
+.plan-corners circle {
+  fill: #c55f3d;
+  stroke: #fff;
+  stroke-width: 5;
+  cursor: grab;
+  vector-effect: non-scaling-stroke;
+}
+
+.plan-corners circle:focus {
+  outline: none;
+  stroke: #18332d;
+  stroke-width: 8;
+}
+
+.boundary-edit-status {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid rgb(24 51 45 / 14%);
+  color: #4b625d;
+  background: rgb(255 255 255 / 48%);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .plan-dimensions {
   fill: #4b625d;
   font-size: 22px;
