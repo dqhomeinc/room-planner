@@ -425,6 +425,28 @@ h2 {
   vector-effect: non-scaling-stroke;
 }
 
+.plan-measurements {
+  pointer-events: none;
+}
+
+.plan-measurements text {
+  fill: #18332d;
+  stroke: rgb(255 255 255 / 92%);
+  stroke-linejoin: round;
+  stroke-width: 5px;
+  paint-order: stroke;
+}
+
+.plan-wall-length {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.plan-node-angle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .room-plan.is-editable svg {
   touch-action: none;
 }
