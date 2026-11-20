@@ -3,6 +3,7 @@ import {
   boundsFromPoints,
   chooseGridStepMeters,
   createRoomViewport,
+  RoomViewportInputError,
   worldToScreen,
   type WorldPoint,
 } from './room-viewport';
@@ -138,17 +139,15 @@ export function RoomPlanSurface({
         </figcaption>
       </figure>
     );
-  } catch {
+  } catch (error) {
+    if (!(error instanceof RoomViewportInputError)) throw error;
     return (
       <figure className="room-plan">
         <div className="room-plan-fallback" role="status">
           <strong>Room preview unavailable</strong>
           <span>Review the room geometry before planning furniture.</span>
         </div>
-        <figcaption>
-          <span>{provenanceLabels[provenance]}</span>
-          Geometry needs review
-        </figcaption>
+        <figcaption>Geometry needs review</figcaption>
       </figure>
     );
   }

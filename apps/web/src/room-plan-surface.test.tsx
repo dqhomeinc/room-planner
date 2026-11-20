@@ -94,13 +94,37 @@ describe('room plan surface', () => {
           { x: 1, y: 0 },
           { x: 2, y: 0 },
         ]}
-        provenance="inferred"
+        provenance="validated"
       />,
     );
 
     expect(markup).toContain('role="status"');
     expect(markup).toContain('Room preview unavailable');
     expect(markup).toContain('Geometry needs review');
+    expect(markup).not.toContain('User-validated room');
     expect(markup).not.toContain('<svg');
+  });
+
+  it('rethrows unexpected rendering errors', () => {
+    const unexpected = new Error('unexpected rendering failure');
+    const boundaryWithFailure = [
+      {
+        get x(): number {
+          throw unexpected;
+        },
+        y: 0,
+      },
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+    ];
+
+    expect(() =>
+      renderToStaticMarkup(
+        <RoomPlanSurface
+          boundary={boundaryWithFailure}
+          provenance="inferred"
+        />,
+      ),
+    ).toThrow(unexpected);
   });
 });
