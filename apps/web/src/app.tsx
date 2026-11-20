@@ -38,7 +38,8 @@ export function App() {
         <div className="room-card">
           <RoomPlanSurface
             boundary={previewBoundary}
-            label="Five by four meter room preview"
+            provenance="sample"
+            label="Illustrative five by four meter sample room"
           />
         </div>
       </section>

@@ -308,8 +308,22 @@ h2 {
 
 .plan-dimensions {
   fill: #4b625d;
-  font-size: 14px;
+  font-size: 22px;
   font-weight: 600;
+}
+
+.room-plan-fallback {
+  display: grid;
+  min-height: 360px;
+  padding: 32px;
+  place-content: center;
+  gap: 8px;
+  color: #4b625d;
+  text-align: center;
+}
+
+.room-plan-fallback strong {
+  color: #18332d;
 }
 
 .room-plan figcaption {
