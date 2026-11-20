@@ -112,12 +112,27 @@ export function metersToDimensionInput(
     throw new RangeError('meters must be finite and greater than zero');
   }
   if (unit === 'meters') {
-    return { unit, meters: String(Number(meters.toFixed(3))) };
+    return { unit, meters: String(Number(meters.toFixed(4))) };
   }
 
   const totalInches = meters / METERS_PER_INCH;
   let feet = Math.floor(totalInches / 12);
-  let inches = Number((totalInches - feet * 12).toFixed(1));
+  // Four decimal inches round-trip through roundedMeters without changing the
+  // canonical value. This formatter is for display/input edges, not storage.
+  let inches = Number((totalInches - feet * 12).toFixed(4));
+  const canonicalMeters = roundedMeters(meters);
+  const displayedMeters = feet * METERS_PER_FOOT + inches * METERS_PER_INCH;
+  if (
+    canonicalMeters === MIN_ROOM_DIMENSION_METERS &&
+    displayedMeters < MIN_ROOM_DIMENSION_METERS
+  ) {
+    inches = Number((inches + 0.0001).toFixed(4));
+  } else if (
+    canonicalMeters === MAX_ROOM_DIMENSION_METERS &&
+    displayedMeters > MAX_ROOM_DIMENSION_METERS
+  ) {
+    inches = Number((inches - 0.0001).toFixed(4));
+  }
   if (inches === 12) {
     feet += 1;
     inches = 0;

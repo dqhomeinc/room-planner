@@ -53,6 +53,50 @@ describe('room dimensions', () => {
     });
   });
 
+  it('accepts exact room limits and rejects values immediately outside them', () => {
+    expect(parseDimension({ unit: 'meters', meters: '0.5' })).toEqual({
+      ok: true,
+      meters: 0.5,
+    });
+    expect(parseDimension({ unit: 'meters', meters: '30' })).toEqual({
+      ok: true,
+      meters: 30,
+    });
+    expect(parseDimension({ unit: 'meters', meters: '0.49999' }).ok).toBe(
+      false,
+    );
+    expect(parseDimension({ unit: 'meters', meters: '30.00001' }).ok).toBe(
+      false,
+    );
+  });
+
+  it('accepts supported decimal forms and rejects negative values', () => {
+    expect(parseDimension({ unit: 'meters', meters: '.5' })).toEqual({
+      ok: true,
+      meters: 0.5,
+    });
+    expect(
+      parseDimension({ unit: 'feet_inches', feet: '1', inches: '11.99' }).ok,
+    ).toBe(true);
+    expect(parseDimension({ unit: 'meters', meters: '-1' })).toEqual({
+      ok: false,
+      message: 'Use at least 0.5 meters.',
+    });
+    expect(
+      parseDimension({ unit: 'feet_inches', feet: '1', inches: '-1' }),
+    ).toEqual({
+      ok: false,
+      message: 'Inches must be from 0 up to 11.99.',
+    });
+  });
+
+  it('rejects locale decimal commas until locale-aware parsing is supported', () => {
+    expect(parseDimension({ unit: 'meters', meters: '4,25' })).toEqual({
+      ok: false,
+      message: 'Use a decimal number without units.',
+    });
+  });
+
   it('returns field-specific room errors together', () => {
     expect(
       parseRoomDimensions(
@@ -80,12 +124,30 @@ describe('room dimensions', () => {
   it('formats canonical meters for switching input units', () => {
     expect(metersToDimensionInput(3.2004, 'meters')).toEqual({
       unit: 'meters',
-      meters: '3.2',
+      meters: '3.2004',
     });
     expect(metersToDimensionInput(3.2004, 'feet_inches')).toEqual({
       unit: 'feet_inches',
       feet: '10',
       inches: '6',
+    });
+  });
+
+  it('round-trips canonical meters through imperial display input', () => {
+    for (const meters of [0.5, 3, 4.25, 12.3456, 30]) {
+      expect(
+        parseDimension(metersToDimensionInput(meters, 'feet_inches')),
+      ).toEqual({ ok: true, meters });
+    }
+  });
+
+  it('carries rounded twelve inches into the feet display', () => {
+    const almostSixFeet = (5 * 12 + 11.99996) * 0.0254;
+
+    expect(metersToDimensionInput(almostSixFeet, 'feet_inches')).toEqual({
+      unit: 'feet_inches',
+      feet: '6',
+      inches: '0',
     });
   });
 
