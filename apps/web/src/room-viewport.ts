@@ -19,19 +19,29 @@ export type RoomViewport = Readonly<{
   offsetY: number;
 }>;
 
+export class RoomViewportInputError extends Error {
+  override name = 'RoomViewportInputError';
+}
+
 function requireFinite(name: string, value: number): void {
-  if (!Number.isFinite(value)) throw new TypeError(`${name} must be finite`);
+  if (!Number.isFinite(value)) {
+    throw new RoomViewportInputError(`${name} must be finite`);
+  }
 }
 
 function requirePositive(name: string, value: number): void {
   requireFinite(name, value);
-  if (value <= 0) throw new RangeError(`${name} must be greater than zero`);
+  if (value <= 0) {
+    throw new RoomViewportInputError(`${name} must be greater than zero`);
+  }
 }
 
 /** Computes axis-aligned bounds; polygon topology is validated by the room contract. */
 export function boundsFromPoints(points: readonly WorldPoint[]): WorldBounds {
   if (points.length < 3) {
-    throw new RangeError('at least three world points are required');
+    throw new RoomViewportInputError(
+      'at least three world points are required',
+    );
   }
 
   let minX = Number.POSITIVE_INFINITY;
@@ -66,7 +76,9 @@ export function createRoomViewport(
   requirePositive('viewport width', size.width);
   requirePositive('viewport height', size.height);
   requireFinite('padding', padding);
-  if (padding < 0) throw new RangeError('padding cannot be negative');
+  if (padding < 0) {
+    throw new RoomViewportInputError('padding cannot be negative');
+  }
 
   const drawableWidth = size.width - padding * 2;
   const drawableHeight = size.height - padding * 2;

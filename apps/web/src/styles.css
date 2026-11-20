@@ -270,76 +270,75 @@ h2 {
 }
 
 .room-card {
-  position: relative;
-  min-height: 430px;
+  min-width: 0;
   overflow: hidden;
-  border-radius: 220px 220px 24px 24px;
-  background: linear-gradient(#bcd1c8 0 68%, #d8b99b 68%);
+  border: 1px solid rgb(24 51 45 / 14%);
+  border-radius: 28px;
+  background: #dfe9e4;
   box-shadow: 0 30px 80px rgb(24 51 45 / 18%);
 }
 
-.room-card p {
-  position: absolute;
-  right: 24px;
-  bottom: 12px;
-  color: rgb(24 51 45 / 65%);
-  font-size: 12px;
+.room-plan {
+  margin: 0;
 }
 
-.sun {
-  position: absolute;
-  top: 40px;
-  right: 45px;
-  width: 90px;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #f8df8d;
-  filter: blur(1px);
+.room-plan svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
-.window {
-  position: absolute;
-  top: 92px;
-  left: 54px;
-  width: 130px;
-  height: 165px;
-  border: 11px solid #f4efe7;
-  background: linear-gradient(
-    90deg,
-    transparent 47%,
-    #f4efe7 47% 53%,
-    transparent 53%
-  );
+.plan-grid line {
+  stroke: rgb(24 51 45 / 12%);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
-.sofa {
-  position: absolute;
-  right: 42px;
-  bottom: 70px;
-  width: 260px;
-  height: 115px;
-  border-radius: 30px 30px 12px 12px;
-  background: #31584e;
+.plan-floor {
+  fill: rgb(255 255 255 / 74%);
 }
 
-.sofa span {
-  display: inline-block;
-  width: 30%;
-  height: 70px;
-  margin: 8px 1%;
-  border-radius: 20px;
-  background: #52756c;
+.plan-outline {
+  fill: none;
+  stroke: #18332d;
+  stroke-linejoin: round;
+  stroke-width: 5;
+  vector-effect: non-scaling-stroke;
 }
 
-.table {
-  position: absolute;
-  bottom: 74px;
-  left: 58px;
-  width: 130px;
-  height: 48px;
-  border-radius: 50%;
-  background: #9c5f41;
-  box-shadow: 0 55px 0 -20px #70422e;
+.plan-dimensions {
+  fill: #4b625d;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.room-plan-fallback {
+  display: grid;
+  min-height: 360px;
+  padding: 32px;
+  place-content: center;
+  gap: 8px;
+  color: #4b625d;
+  text-align: center;
+}
+
+.room-plan-fallback strong {
+  color: #18332d;
+}
+
+.room-plan figcaption {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-top: 1px solid rgb(24 51 45 / 14%);
+  color: #4b625d;
+  background: rgb(255 255 255 / 48%);
+  font-size: 13px;
+}
+
+.room-plan figcaption span {
+  color: #18332d;
+  font-weight: 600;
 }
 
 .workflow {
@@ -382,10 +381,6 @@ h2 {
     grid-template-columns: 1fr;
     gap: 56px;
     padding-block: 44px 80px;
-  }
-
-  .room-card {
-    min-height: 360px;
   }
 
   .capture {
