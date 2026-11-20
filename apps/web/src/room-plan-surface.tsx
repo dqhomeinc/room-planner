@@ -1,5 +1,6 @@
 import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { moveBoundaryNode } from './room-boundary';
+import { measureBoundary } from './room-boundary-measurements';
 import {
   boundsFromPoints,
   chooseGridStepMeters,
@@ -41,6 +42,11 @@ function valuesBetween(minimum: number, maximum: number, step: number) {
   );
 }
 
+function readableTextRotation(start: WorldPoint, end: WorldPoint): number {
+  const angle = (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI;
+  return angle > 90 || angle < -90 ? angle + 180 : angle;
+}
+
 export function RoomPlanSurface({
   boundary,
   provenance,
@@ -77,6 +83,11 @@ export function RoomPlanSurface({
     });
     const widthMeters = bounds.maxX - bounds.minX;
     const heightMeters = bounds.maxY - bounds.minY;
+    const center = worldToScreen(viewport, {
+      x: (bounds.minX + bounds.maxX) / 2,
+      y: (bounds.minY + bounds.maxY) / 2,
+    });
+    const measurements = canEdit ? measureBoundary(boundary) : [];
 
     function moveCorner(index: number, target: WorldPoint) {
       const result = moveBoundaryNode(boundary, index, target);
@@ -168,6 +179,55 @@ export function RoomPlanSurface({
             })}
           </g>
           <polygon className="plan-outline" points={roomPoints} />
+          {canEdit && (
+            <g className="plan-measurements" aria-hidden="true">
+              {measurements.map(
+                ({ nodeIndex, wallLengthMeters, interiorAngleDegrees }) => {
+                  const node = worldToScreen(viewport, boundary[nodeIndex]);
+                  const next = worldToScreen(
+                    viewport,
+                    boundary[(nodeIndex + 1) % boundary.length],
+                  );
+                  const midpoint = {
+                    x: (node.x + next.x) / 2,
+                    y: (node.y + next.y) / 2,
+                  };
+                  const towardCenter = {
+                    x: center.x - node.x,
+                    y: center.y - node.y,
+                  };
+                  const centerDistance =
+                    Math.hypot(towardCenter.x, towardCenter.y) || 1;
+                  const anglePosition = {
+                    x: node.x + (towardCenter.x / centerDistance) * 34,
+                    y: node.y + (towardCenter.y / centerDistance) * 34,
+                  };
+                  return (
+                    <g key={nodeIndex}>
+                      <text
+                        className="plan-wall-length"
+                        x={midpoint.x}
+                        y={midpoint.y - 9}
+                        textAnchor="middle"
+                        transform={`rotate(${readableTextRotation(node, next)} ${midpoint.x} ${midpoint.y})`}
+                      >
+                        {wallLengthMeters.toFixed(2)} m
+                      </text>
+                      <text
+                        className="plan-node-angle"
+                        x={anglePosition.x}
+                        y={anglePosition.y}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                      >
+                        {Number(interiorAngleDegrees.toFixed(1))}°
+                      </text>
+                    </g>
+                  );
+                },
+              )}
+            </g>
+          )}
           {canEdit && (
             <g className="plan-nodes">
               {boundary.map((point, index) => {

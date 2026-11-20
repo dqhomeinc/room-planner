@@ -124,6 +124,47 @@ describe('room plan surface', () => {
     expect(staticMarkup).not.toContain('aria-label="Move node 1"');
   });
 
+  it('shows live wall lengths and node angles only in edit mode', () => {
+    const editableMarkup = renderToStaticMarkup(
+      <RoomPlanSurface
+        boundary={boundary}
+        provenance="validated"
+        editable
+        onBoundaryChange={() => undefined}
+      />,
+    );
+    const staticMarkup = renderToStaticMarkup(
+      <RoomPlanSurface boundary={boundary} provenance="sample" />,
+    );
+
+    expect(editableMarkup.match(/class="plan-wall-length"/g)).toHaveLength(4);
+    expect(editableMarkup.match(/class="plan-node-angle"/g)).toHaveLength(4);
+    expect(editableMarkup).toContain('5.00 m');
+    expect(editableMarkup).toContain('4.00 m');
+    expect(editableMarkup.match(/90°/g)).toHaveLength(4);
+    expect(staticMarkup).not.toContain('class="plan-measurements"');
+  });
+
+  it('shows the interior angle at a concave node', () => {
+    const markup = renderToStaticMarkup(
+      <RoomPlanSurface
+        boundary={[
+          { x: 0, y: 0 },
+          { x: 5, y: 0 },
+          { x: 5, y: 2.5 },
+          { x: 3, y: 2.5 },
+          { x: 3, y: 4 },
+          { x: 0, y: 4 },
+        ]}
+        provenance="validated"
+        editable
+        onBoundaryChange={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('270°');
+  });
+
   it('rethrows unexpected rendering errors', () => {
     const unexpected = new Error('unexpected rendering failure');
     const boundaryWithFailure = [
