@@ -1,5 +1,6 @@
 import { CapturePanel } from './capture-panel';
 import { productSteps } from './product-steps';
+import { RoomDimensionForm } from './room-dimension-form';
 import { RoomPlanSurface } from './room-plan-surface';
 import './styles.css';
 
@@ -31,8 +32,8 @@ export function App() {
             Capture a room with your phone, explore a measured 3D model, and
             compare furnishing plans built from products you can actually buy.
           </p>
-          <a className="primary-action" href="#capture">
-            Choose a room video
+          <a className="primary-action" href="#room-builder">
+            Enter room dimensions
           </a>
         </div>
         <div className="room-card">
@@ -43,6 +44,8 @@ export function App() {
           />
         </div>
       </section>
+
+      <RoomDimensionForm />
 
       <CapturePanel />
 

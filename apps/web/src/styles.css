@@ -36,6 +36,7 @@ main {
 nav,
 .hero,
 .capture,
+.room-builder,
 .workflow {
   width: min(1120px, calc(100% - 40px));
   margin-inline: auto;
@@ -131,6 +132,110 @@ h2 {
   align-items: center;
   padding-block: 92px;
   border-top: 1px solid rgb(24 51 45 / 18%);
+}
+
+.room-builder {
+  padding-block: 92px;
+  border-top: 1px solid rgb(24 51 45 / 18%);
+}
+
+.room-builder-heading > p:last-child,
+.dimension-status {
+  color: #4b625d;
+  line-height: 1.6;
+}
+
+.room-builder-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+  gap: 48px;
+  align-items: start;
+  margin-top: 40px;
+}
+
+.dimension-form,
+.dimension-fields,
+.imperial-fields fieldset {
+  display: grid;
+  gap: 16px;
+}
+
+.unit-choice,
+.imperial-fields fieldset {
+  padding: 0;
+  border: 0;
+}
+
+.unit-choice legend,
+.imperial-fields legend {
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.unit-choice label {
+  margin-right: 18px;
+}
+
+.unit-choice input {
+  margin-right: 7px;
+}
+
+.dimension-fields {
+  margin-top: 8px;
+}
+
+.dimension-fields label {
+  display: grid;
+  gap: 7px;
+  color: #4b625d;
+  font-size: 14px;
+}
+
+.dimension-fields input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgb(24 51 45 / 28%);
+  border-radius: 10px;
+  color: #18332d;
+  background: rgb(255 255 255 / 58%);
+  font: inherit;
+}
+
+.dimension-fields input[aria-invalid='true'] {
+  border-color: #a84535;
+}
+
+.dimension-fields small {
+  color: #a84535;
+}
+
+.imperial-fields fieldset {
+  grid-template-columns: 1fr 1fr;
+}
+
+.imperial-fields legend,
+.imperial-fields small {
+  grid-column: 1 / -1;
+}
+
+.dimension-form .primary-action {
+  justify-self: start;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dimension-status {
+  min-height: 26px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.room-builder-preview {
+  overflow: hidden;
+  border: 1px solid rgb(24 51 45 / 14%);
+  border-radius: 24px;
+  background: #dfe9e4;
 }
 
 .capture-copy > p:last-child {
@@ -384,6 +489,11 @@ h2 {
   }
 
   .capture {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .room-builder-layout {
     grid-template-columns: 1fr;
     gap: 28px;
   }
