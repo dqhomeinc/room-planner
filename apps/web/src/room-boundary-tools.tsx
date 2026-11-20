@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { resizeOrthogonalWall } from './room-boundary';
+import { resizeBoundaryWall } from './room-boundary';
 import type { WorldPoint } from './room-viewport';
 
 type RoomBoundaryToolsProps = Readonly<{
@@ -39,7 +39,7 @@ export function RoomBoundaryTools({
 
   function applyLength(index: number) {
     const lengthMeters = Number(drafts[index]);
-    const result = resizeOrthogonalWall(boundary, index, lengthMeters);
+    const result = resizeBoundaryWall(boundary, index, lengthMeters);
     if (!result.ok) {
       onIssue(result.issues[0]?.message ?? 'That wall length is not valid.');
       return;

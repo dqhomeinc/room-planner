@@ -179,7 +179,7 @@ export function RoomDimensionForm() {
             ))}
             <small id="shape-help">
               {customized
-                ? 'Custom orthogonal shape. Drag a corner or use its arrow keys.'
+                ? 'Custom room shape. Move any node while keeping walls straight.'
                 : 'Presets use straight walls and 90-degree corners.'}
             </small>
             {shapeError && <small className="field-error">{shapeError}</small>}
@@ -317,7 +317,7 @@ export function RoomDimensionForm() {
             <>
               <p className="boundary-edit-status" aria-live="polite">
                 {editMessage ??
-                  'Drag corner handles or enter an exact wall length. Hold Shift with arrow keys for 0.5 meter steps.'}
+                  'Drag a corner node or enter an exact wall length. Hold Shift with arrow keys for 0.5 meter steps.'}
               </p>
               <RoomBoundaryTools
                 boundary={history.present}

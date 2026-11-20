@@ -105,7 +105,7 @@ describe('room plan surface', () => {
     expect(markup).not.toContain('<svg');
   });
 
-  it('exposes keyboard-focusable corner controls only in edit mode', () => {
+  it('exposes keyboard-focusable node controls only in edit mode', () => {
     const editableMarkup = renderToStaticMarkup(
       <RoomPlanSurface
         boundary={boundary}
@@ -119,9 +119,9 @@ describe('room plan surface', () => {
     );
 
     expect(editableMarkup.match(/role="button"/g)).toHaveLength(4);
-    expect(editableMarkup).toContain('aria-label="Move corner 1"');
+    expect(editableMarkup).toContain('aria-label="Move node 1"');
     expect(editableMarkup).toContain('role="group"');
-    expect(staticMarkup).not.toContain('aria-label="Move corner 1"');
+    expect(staticMarkup).not.toContain('aria-label="Move node 1"');
   });
 
   it('rethrows unexpected rendering errors', () => {

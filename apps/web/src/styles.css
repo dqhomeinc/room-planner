@@ -429,7 +429,7 @@ h2 {
   touch-action: none;
 }
 
-.plan-corners circle {
+.plan-nodes circle {
   fill: #c55f3d;
   stroke: #fff;
   stroke-width: 5;
@@ -437,7 +437,7 @@ h2 {
   vector-effect: non-scaling-stroke;
 }
 
-.plan-corners circle:focus {
+.plan-nodes circle:focus {
   outline: none;
   stroke: #18332d;
   stroke-width: 8;
