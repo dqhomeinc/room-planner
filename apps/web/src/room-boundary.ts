@@ -91,8 +91,9 @@ function hasSelfIntersection(boundary: readonly WorldPoint[]): boolean {
   return false;
 }
 
-export function validateOrthogonalBoundary(
+function validateBoundary(
   boundary: readonly WorldPoint[],
+  requireOrthogonal: boolean,
 ): readonly BoundaryIssue[] {
   if (boundary.length < 4) {
     return [
@@ -124,7 +125,7 @@ export function validateOrthogonalBoundary(
     }
     const horizontal = Math.abs(point.y - next.y) <= epsilon;
     const vertical = Math.abs(point.x - next.x) <= epsilon;
-    if (!horizontal && !vertical) {
+    if (requireOrthogonal && !horizontal && !vertical) {
       issues.push({
         code: 'non_orthogonal_wall',
         message: `Wall ${index + 1} must remain horizontal or vertical.`,
@@ -147,6 +148,18 @@ export function validateOrthogonalBoundary(
   return issues;
 }
 
+export function validatePolygonBoundary(
+  boundary: readonly WorldPoint[],
+): readonly BoundaryIssue[] {
+  return validateBoundary(boundary, false);
+}
+
+export function validateOrthogonalBoundary(
+  boundary: readonly WorldPoint[],
+): readonly BoundaryIssue[] {
+  return validateBoundary(boundary, true);
+}
+
 function snapped(value: number, step: number): number {
   if (!Number.isFinite(value) || !Number.isFinite(step) || step <= 0) {
     throw new RangeError(
@@ -156,9 +169,35 @@ function snapped(value: number, step: number): number {
   return Number((Math.round(value / step) * step).toFixed(6));
 }
 
-function editResult(boundary: readonly WorldPoint[]): BoundaryEditResult {
+function orthogonalEditResult(
+  boundary: readonly WorldPoint[],
+): BoundaryEditResult {
   const issues = validateOrthogonalBoundary(boundary);
   return issues.length ? { ok: false, issues } : { ok: true, boundary };
+}
+
+function polygonEditResult(
+  boundary: readonly WorldPoint[],
+): BoundaryEditResult {
+  const issues = validatePolygonBoundary(boundary);
+  return issues.length ? { ok: false, issues } : { ok: true, boundary };
+}
+
+export function moveBoundaryNode(
+  boundary: readonly WorldPoint[],
+  nodeIndex: number,
+  target: WorldPoint,
+  snapStepMeters = 0.1,
+): BoundaryEditResult {
+  if (!Number.isInteger(nodeIndex) || !boundary[nodeIndex]) {
+    throw new RangeError('node index must reference the boundary');
+  }
+  const moved = boundary.map((point) => ({ ...point }));
+  moved[nodeIndex] = {
+    x: snapped(target.x, snapStepMeters),
+    y: snapped(target.y, snapStepMeters),
+  };
+  return polygonEditResult(moved);
 }
 
 export function moveOrthogonalCorner(
@@ -188,7 +227,7 @@ export function moveOrthogonalCorner(
     moved[nextIndex].y = y;
   }
   moved[cornerIndex] = { x, y };
-  return editResult(moved);
+  return orthogonalEditResult(moved);
 }
 
 export function moveOrthogonalWall(
@@ -212,7 +251,42 @@ export function moveOrthogonalWall(
     moved[wallIndex].x = value;
     moved[nextIndex].x = value;
   }
-  return editResult(moved);
+  return orthogonalEditResult(moved);
+}
+
+export function resizeBoundaryWall(
+  boundary: readonly WorldPoint[],
+  wallIndex: number,
+  lengthMeters: number,
+): BoundaryEditResult {
+  if (!Number.isInteger(wallIndex) || !boundary[wallIndex]) {
+    throw new RangeError('wall index must reference the boundary');
+  }
+  if (!Number.isFinite(lengthMeters) || lengthMeters < MIN_WALL_LENGTH_METERS) {
+    return {
+      ok: false,
+      issues: [
+        {
+          code: 'wall_too_short',
+          message: `Wall ${wallIndex + 1} must be at least ${MIN_WALL_LENGTH_METERS} meters.`,
+          wallIndex,
+        },
+      ],
+    };
+  }
+
+  const start = boundary[wallIndex];
+  const endIndex = (wallIndex + 1) % boundary.length;
+  const end = boundary[endIndex];
+  const currentLength = distance(start, end);
+  if (currentLength < epsilon) return polygonEditResult(boundary);
+
+  const moved = boundary.map((point) => ({ ...point }));
+  moved[endIndex] = {
+    x: start.x + ((end.x - start.x) / currentLength) * lengthMeters,
+    y: start.y + ((end.y - start.y) / currentLength) * lengthMeters,
+  };
+  return polygonEditResult(moved);
 }
 
 export function resizeOrthogonalWall(
