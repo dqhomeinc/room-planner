@@ -161,23 +161,37 @@ h2 {
 }
 
 .unit-choice,
+.shape-choice,
 .imperial-fields fieldset {
   padding: 0;
   border: 0;
 }
 
 .unit-choice legend,
+.shape-choice legend,
 .imperial-fields legend {
   margin-bottom: 10px;
   font-weight: 600;
 }
 
-.unit-choice label {
+.unit-choice label,
+.shape-choice label {
   margin-right: 18px;
 }
 
-.unit-choice input {
+.unit-choice input,
+.shape-choice input {
   margin-right: 7px;
+}
+
+.shape-choice small {
+  display: block;
+  margin-top: 10px;
+  color: #4b625d;
+}
+
+.shape-choice .field-error {
+  color: #a84535;
 }
 
 .dimension-fields {

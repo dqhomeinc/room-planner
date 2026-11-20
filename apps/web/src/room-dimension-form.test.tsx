@@ -11,6 +11,10 @@ describe('room dimension form', () => {
     expect(markup).toContain('Width in meters');
     expect(markup).toContain('Length in meters');
     expect(markup).toContain('Confirm these dimensions');
+    expect(markup).toMatch(/name="room-shape" checked="" value="rectangle"/);
+    expect(markup).toContain('L-shape');
+    expect(markup).toContain('Alcove');
+    expect(markup).toContain('straight walls and 90-degree corners');
     expect(markup).toContain('Illustrative sample');
     expect(markup).toContain('illustrative sample until you confirm');
   });
