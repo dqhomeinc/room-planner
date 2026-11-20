@@ -1,4 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useReducer, useState, type FormEvent } from 'react';
+import {
+  boundaryHistoryReducer,
+  createBoundaryHistory,
+} from './boundary-history';
 import {
   metersToDimensionInput,
   parseDimension,
@@ -7,6 +11,7 @@ import {
   type RoomDimensionsResult,
 } from './room-dimensions';
 import { RoomPlanSurface } from './room-plan-surface';
+import { RoomBoundaryTools } from './room-boundary-tools';
 import { boundsFromPoints } from './room-viewport';
 import {
   createRoomShapePreset,
@@ -24,12 +29,6 @@ const initialBoundary: readonly WorldPoint[] = [
   { x: 5, y: 4 },
   { x: 0, y: 4 },
 ];
-
-type RoomPreview = Readonly<{
-  widthMeters: number;
-  lengthMeters: number;
-  boundary: readonly WorldPoint[];
-}>;
 
 function blankInput(unit: DimensionInput['unit']): DimensionInput {
   return unit === 'meters'
@@ -51,11 +50,11 @@ export function RoomDimensionForm() {
   const [width, setWidth] = useState<DimensionInput>(metricWidth);
   const [length, setLength] = useState<DimensionInput>(metricLength);
   const [shape, setShape] = useState<RoomShapePreset>('rectangle');
-  const [preview, setPreview] = useState<RoomPreview>({
-    widthMeters: 5,
-    lengthMeters: 4,
-    boundary: initialBoundary,
-  });
+  const [history, dispatchHistory] = useReducer(
+    boundaryHistoryReducer,
+    initialBoundary,
+    createBoundaryHistory,
+  );
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -89,7 +88,9 @@ export function RoomDimensionForm() {
       dimensions.widthMeters,
       dimensions.lengthMeters,
     );
-    if (result.ok) setPreview({ ...dimensions, boundary: result.boundary });
+    if (result.ok) {
+      dispatchHistory({ type: 'reset', boundary: result.boundary });
+    }
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -110,21 +111,41 @@ export function RoomDimensionForm() {
     }
     setErrors({});
     setShapeError(undefined);
-    setPreview({ ...result, boundary: shapeResult.boundary });
+    dispatchHistory({ type: 'reset', boundary: shapeResult.boundary });
     setCustomized(false);
     setConfirmed(true);
     setPending(false);
   }
 
   function applyBoundaryEdit(boundary: readonly WorldPoint[]) {
+    dispatchHistory({ type: 'apply', boundary });
+    syncBoundary(boundary);
+  }
+
+  function syncBoundary(boundary: readonly WorldPoint[]) {
     const bounds = boundsFromPoints(boundary);
     const widthMeters = bounds.maxX - bounds.minX;
     const lengthMeters = bounds.maxY - bounds.minY;
-    setPreview({ widthMeters, lengthMeters, boundary });
     setWidth(metersToDimensionInput(widthMeters, unit));
     setLength(metersToDimensionInput(lengthMeters, unit));
     setCustomized(true);
     setPending(false);
+  }
+
+  function undoBoundaryEdit() {
+    const previous = history.past.at(-1);
+    if (!previous) return;
+    dispatchHistory({ type: 'undo' });
+    syncBoundary(previous);
+    setEditMessage(undefined);
+  }
+
+  function redoBoundaryEdit() {
+    const next = history.future[0];
+    if (!next) return;
+    dispatchHistory({ type: 'redo' });
+    syncBoundary(next);
+    setEditMessage(undefined);
   }
 
   return (
@@ -281,7 +302,7 @@ export function RoomDimensionForm() {
 
         <div className="room-builder-preview">
           <RoomPlanSurface
-            boundary={preview.boundary}
+            boundary={history.present}
             provenance={confirmed ? 'validated' : 'sample'}
             editable={confirmed}
             onBoundaryChange={applyBoundaryEdit}
@@ -293,10 +314,21 @@ export function RoomDimensionForm() {
             }
           />
           {confirmed && (
-            <p className="boundary-edit-status" aria-live="polite">
-              {editMessage ??
-                'Drag corner handles or focus one and use the arrow keys. Hold Shift for 0.5 meter steps.'}
-            </p>
+            <>
+              <p className="boundary-edit-status" aria-live="polite">
+                {editMessage ??
+                  'Drag corner handles or enter an exact wall length. Hold Shift with arrow keys for 0.5 meter steps.'}
+              </p>
+              <RoomBoundaryTools
+                boundary={history.present}
+                canUndo={history.past.length > 0}
+                canRedo={history.future.length > 0}
+                onUndo={undoBoundaryEdit}
+                onRedo={redoBoundaryEdit}
+                onBoundaryChange={applyBoundaryEdit}
+                onIssue={setEditMessage}
+              />
+            </>
           )}
         </div>
       </div>

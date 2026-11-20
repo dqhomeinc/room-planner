@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   moveOrthogonalCorner,
   moveOrthogonalWall,
+  resizeOrthogonalWall,
   validateOrthogonalBoundary,
 } from './room-boundary';
 
@@ -92,6 +93,28 @@ describe('orthogonal room boundaries', () => {
     if (!result.ok) {
       expect(result.issues.map(({ code }) => code)).toContain('wall_too_short');
     }
+  });
+
+  it('sets an exact wall length and keeps the next wall orthogonal', () => {
+    expect(resizeOrthogonalWall(rectangle, 0, 4.25)).toEqual({
+      ok: true,
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 4.25, y: 0 },
+        { x: 4.25, y: 4 },
+        { x: 0, y: 4 },
+      ],
+    });
+  });
+
+  it('rejects invalid wall lengths', () => {
+    const result = resizeOrthogonalWall(rectangle, 0, 0.1);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.issues[0]?.code).toBe('wall_too_short');
+    expect(() => resizeOrthogonalWall(rectangle, 10, 2)).toThrow(
+      'wall index must reference the boundary',
+    );
   });
 
   it('rejects invalid indices and snap configuration', () => {
