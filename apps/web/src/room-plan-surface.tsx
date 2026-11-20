@@ -1,5 +1,5 @@
 import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { moveOrthogonalCorner } from './room-boundary';
+import { moveBoundaryNode } from './room-boundary';
 import {
   boundsFromPoints,
   chooseGridStepMeters,
@@ -79,7 +79,7 @@ export function RoomPlanSurface({
     const heightMeters = bounds.maxY - bounds.minY;
 
     function moveCorner(index: number, target: WorldPoint) {
-      const result = moveOrthogonalCorner(boundary, index, target);
+      const result = moveBoundaryNode(boundary, index, target);
       if (!result.ok) {
         onEditIssue?.(result.issues[0]?.message ?? 'This edit is not valid.');
         return;
@@ -169,7 +169,7 @@ export function RoomPlanSurface({
           </g>
           <polygon className="plan-outline" points={roomPoints} />
           {canEdit && (
-            <g className="plan-corners">
+            <g className="plan-nodes">
               {boundary.map((point, index) => {
                 const screen = worldToScreen(viewport, point);
                 return (
@@ -180,7 +180,7 @@ export function RoomPlanSurface({
                     r="16"
                     role="button"
                     tabIndex={0}
-                    aria-label={`Move corner ${index + 1}`}
+                    aria-label={`Move node ${index + 1}`}
                     onKeyDown={(event) => handleCornerKey(event, index)}
                     onPointerDown={(event) => {
                       event.currentTarget.setPointerCapture(event.pointerId);
