@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  moveBoundaryNode,
   moveOrthogonalCorner,
   moveOrthogonalWall,
+  resizeBoundaryWall,
   resizeOrthogonalWall,
+  validatePolygonBoundary,
   validateOrthogonalBoundary,
 } from './room-boundary';
 
@@ -16,6 +19,17 @@ const rectangle = [
 describe('orthogonal room boundaries', () => {
   it('accepts a valid rectangular boundary', () => {
     expect(validateOrthogonalBoundary(rectangle)).toEqual([]);
+  });
+
+  it('accepts straight diagonal walls in a general polygon', () => {
+    expect(
+      validatePolygonBoundary([
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 3.5, y: 3 },
+        { x: 0, y: 4 },
+      ]),
+    ).toEqual([]);
   });
 
   it('rejects diagonal and undersized walls', () => {
@@ -74,6 +88,32 @@ describe('orthogonal room boundaries', () => {
     expect(rectangle[0]).toEqual({ x: 0, y: 0 });
   });
 
+  it('moves only one node and permits straight diagonal walls', () => {
+    const result = moveBoundaryNode(rectangle, 1, { x: 4.46, y: 0.54 });
+
+    expect(result).toEqual({
+      ok: true,
+      boundary: [
+        { x: 0, y: 0 },
+        { x: 4.5, y: 0.5 },
+        { x: 5, y: 4 },
+        { x: 0, y: 4 },
+      ],
+    });
+    expect(rectangle[1]).toEqual({ x: 5, y: 0 });
+  });
+
+  it('rejects a node move that crosses another wall', () => {
+    const result = moveBoundaryNode(rectangle, 1, { x: 2, y: 5 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.map(({ code }) => code)).toContain(
+        'self_intersection',
+      );
+    }
+  });
+
   it('moves a wall perpendicular to its orientation', () => {
     expect(moveOrthogonalWall(rectangle, 0, 1.04)).toEqual({
       ok: true,
@@ -107,6 +147,22 @@ describe('orthogonal room boundaries', () => {
     });
   });
 
+  it('sets an exact diagonal wall length by moving its end node', () => {
+    const diagonal = [
+      { x: 0, y: 0 },
+      { x: 3, y: 4 },
+      { x: 3, y: 6 },
+      { x: 0, y: 6 },
+    ];
+    const result = resizeBoundaryWall(diagonal, 0, 2.5);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.boundary[1]).toEqual({ x: 1.5, y: 2 });
+      expect(Math.hypot(result.boundary[1].x, result.boundary[1].y)).toBe(2.5);
+    }
+  });
+
   it('rejects invalid wall lengths', () => {
     const result = resizeOrthogonalWall(rectangle, 0, 0.1);
 
@@ -123,6 +179,9 @@ describe('orthogonal room boundaries', () => {
     );
     expect(() => moveOrthogonalCorner(rectangle, 0, { x: 1, y: 1 }, 0)).toThrow(
       'snap values must be finite and step must be positive',
+    );
+    expect(() => moveBoundaryNode(rectangle, 10, { x: 1, y: 1 })).toThrow(
+      'node index must reference the boundary',
     );
   });
 });
