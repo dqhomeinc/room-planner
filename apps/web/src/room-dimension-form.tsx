@@ -7,6 +7,7 @@ import {
   type RoomDimensionsResult,
 } from './room-dimensions';
 import { RoomPlanSurface } from './room-plan-surface';
+import { boundsFromPoints } from './room-viewport';
 import {
   createRoomShapePreset,
   type RoomShapePreset,
@@ -59,6 +60,8 @@ export function RoomDimensionForm() {
   const [pending, setPending] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [shapeError, setShapeError] = useState<string>();
+  const [customized, setCustomized] = useState(false);
+  const [editMessage, setEditMessage] = useState<string>();
   const unit = width.unit;
 
   function selectUnit(nextUnit: DimensionInput['unit']) {
@@ -75,6 +78,7 @@ export function RoomDimensionForm() {
 
   function selectShape(nextShape: RoomShapePreset) {
     setShape(nextShape);
+    setCustomized(false);
     setShapeError(undefined);
     setPending(true);
     if (confirmed) return;
@@ -107,7 +111,19 @@ export function RoomDimensionForm() {
     setErrors({});
     setShapeError(undefined);
     setPreview({ ...result, boundary: shapeResult.boundary });
+    setCustomized(false);
     setConfirmed(true);
+    setPending(false);
+  }
+
+  function applyBoundaryEdit(boundary: readonly WorldPoint[]) {
+    const bounds = boundsFromPoints(boundary);
+    const widthMeters = bounds.maxX - bounds.minX;
+    const lengthMeters = bounds.maxY - bounds.minY;
+    setPreview({ widthMeters, lengthMeters, boundary });
+    setWidth(metersToDimensionInput(widthMeters, unit));
+    setLength(metersToDimensionInput(lengthMeters, unit));
+    setCustomized(true);
     setPending(false);
   }
 
@@ -134,14 +150,16 @@ export function RoomDimensionForm() {
                   type="radio"
                   name="room-shape"
                   value={value}
-                  checked={shape === value}
+                  checked={!customized && shape === value}
                   onChange={() => selectShape(value)}
                 />
                 {text}
               </label>
             ))}
             <small id="shape-help">
-              Presets use straight walls and 90-degree corners.
+              {customized
+                ? 'Custom orthogonal shape. Drag a corner or use its arrow keys.'
+                : 'Presets use straight walls and 90-degree corners.'}
             </small>
             {shapeError && <small className="field-error">{shapeError}</small>}
           </fieldset>
@@ -265,12 +283,21 @@ export function RoomDimensionForm() {
           <RoomPlanSurface
             boundary={preview.boundary}
             provenance={confirmed ? 'validated' : 'sample'}
+            editable={confirmed}
+            onBoundaryChange={applyBoundaryEdit}
+            onEditIssue={setEditMessage}
             label={
               confirmed
                 ? 'Room plan from confirmed dimensions'
                 : 'Illustrative sample room'
             }
           />
+          {confirmed && (
+            <p className="boundary-edit-status" aria-live="polite">
+              {editMessage ??
+                'Drag corner handles or focus one and use the arrow keys. Hold Shift for 0.5 meter steps.'}
+            </p>
+          )}
         </div>
       </div>
     </section>

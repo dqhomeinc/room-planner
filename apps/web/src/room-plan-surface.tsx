@@ -1,9 +1,11 @@
-import { useId } from 'react';
+import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { moveOrthogonalCorner } from './room-boundary';
 import {
   boundsFromPoints,
   chooseGridStepMeters,
   createRoomViewport,
   RoomViewportInputError,
+  screenToWorld,
   worldToScreen,
   type WorldPoint,
 } from './room-viewport';
@@ -22,6 +24,9 @@ type RoomPlanSurfaceProps = Readonly<{
   boundary: readonly WorldPoint[];
   provenance: RoomGeometryProvenance;
   label?: string;
+  editable?: boolean;
+  onBoundaryChange?: (boundary: readonly WorldPoint[]) => void;
+  onEditIssue?: (message?: string) => void;
 }>;
 
 function valuesBetween(minimum: number, maximum: number, step: number) {
@@ -40,8 +45,13 @@ export function RoomPlanSurface({
   boundary,
   provenance,
   label = 'Room floor plan',
+  editable = false,
+  onBoundaryChange,
+  onEditIssue,
 }: RoomPlanSurfaceProps) {
   const clipPathId = `room-boundary-${useId().replace(/:/g, '')}`;
+  const [draggingCorner, setDraggingCorner] = useState<number>();
+  const canEdit = editable && Boolean(onBoundaryChange);
 
   try {
     const bounds = boundsFromPoints(boundary);
@@ -68,11 +78,55 @@ export function RoomPlanSurface({
     const widthMeters = bounds.maxX - bounds.minX;
     const heightMeters = bounds.maxY - bounds.minY;
 
+    function moveCorner(index: number, target: WorldPoint) {
+      const result = moveOrthogonalCorner(boundary, index, target);
+      if (!result.ok) {
+        onEditIssue?.(result.issues[0]?.message ?? 'This edit is not valid.');
+        return;
+      }
+      onEditIssue?.(undefined);
+      onBoundaryChange?.(result.boundary);
+    }
+
+    function pointerTarget(event: PointerEvent<SVGCircleElement>) {
+      const svg = event.currentTarget.ownerSVGElement;
+      if (!svg) return undefined;
+      const rectangle = svg.getBoundingClientRect();
+      return screenToWorld(viewport, {
+        x:
+          ((event.clientX - rectangle.left) / rectangle.width) *
+          surfaceSize.width,
+        y:
+          ((event.clientY - rectangle.top) / rectangle.height) *
+          surfaceSize.height,
+      });
+    }
+
+    function handleCornerKey(
+      event: KeyboardEvent<SVGCircleElement>,
+      index: number,
+    ) {
+      const movement = event.shiftKey ? 0.5 : 0.1;
+      const offsets: Record<string, WorldPoint> = {
+        ArrowLeft: { x: -movement, y: 0 },
+        ArrowRight: { x: movement, y: 0 },
+        ArrowDown: { x: 0, y: -movement },
+        ArrowUp: { x: 0, y: movement },
+      };
+      const offset = offsets[event.key];
+      if (!offset) return;
+      event.preventDefault();
+      moveCorner(index, {
+        x: boundary[index].x + offset.x,
+        y: boundary[index].y + offset.y,
+      });
+    }
+
     return (
-      <figure className="room-plan">
+      <figure className={`room-plan${canEdit ? ' is-editable' : ''}`}>
         <svg
           viewBox={`0 0 ${surfaceSize.width} ${surfaceSize.height}`}
-          role="img"
+          role={canEdit ? 'group' : 'img'}
           aria-label={label}
         >
           <defs>
@@ -114,6 +168,41 @@ export function RoomPlanSurface({
             })}
           </g>
           <polygon className="plan-outline" points={roomPoints} />
+          {canEdit && (
+            <g className="plan-corners">
+              {boundary.map((point, index) => {
+                const screen = worldToScreen(viewport, point);
+                return (
+                  <circle
+                    key={index}
+                    cx={screen.x}
+                    cy={screen.y}
+                    r="16"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Move corner ${index + 1}`}
+                    onKeyDown={(event) => handleCornerKey(event, index)}
+                    onPointerDown={(event) => {
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      setDraggingCorner(index);
+                    }}
+                    onPointerMove={(event) => {
+                      if (draggingCorner !== index) return;
+                      const target = pointerTarget(event);
+                      if (target) moveCorner(index, target);
+                    }}
+                    onPointerUp={(event) => {
+                      event.currentTarget.releasePointerCapture(
+                        event.pointerId,
+                      );
+                      setDraggingCorner(undefined);
+                    }}
+                    onPointerCancel={() => setDraggingCorner(undefined)}
+                  />
+                );
+              })}
+            </g>
+          )}
           <g className="plan-dimensions" aria-hidden="true">
             <text
               x={(lowerLeft.x + lowerRight.x) / 2}
