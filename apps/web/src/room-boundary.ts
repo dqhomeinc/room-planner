@@ -214,3 +214,55 @@ export function moveOrthogonalWall(
   }
   return editResult(moved);
 }
+
+export function resizeOrthogonalWall(
+  boundary: readonly WorldPoint[],
+  wallIndex: number,
+  lengthMeters: number,
+  snapStepMeters = 0.01,
+): BoundaryEditResult {
+  if (!Number.isInteger(wallIndex) || !boundary[wallIndex]) {
+    throw new RangeError('wall index must reference the boundary');
+  }
+  if (!Number.isFinite(lengthMeters) || lengthMeters < MIN_WALL_LENGTH_METERS) {
+    return {
+      ok: false,
+      issues: [
+        {
+          code: 'wall_too_short',
+          message: `Wall ${wallIndex + 1} must be at least ${MIN_WALL_LENGTH_METERS} meters.`,
+          wallIndex,
+        },
+      ],
+    };
+  }
+
+  const start = boundary[wallIndex];
+  const endIndex = (wallIndex + 1) % boundary.length;
+  const end = boundary[endIndex];
+  const horizontal = Math.abs(start.y - end.y) <= epsilon;
+  const vertical = Math.abs(start.x - end.x) <= epsilon;
+  if (!horizontal && !vertical) {
+    return {
+      ok: false,
+      issues: [
+        {
+          code: 'non_orthogonal_wall',
+          message: `Wall ${wallIndex + 1} must remain horizontal or vertical.`,
+          wallIndex,
+        },
+      ],
+    };
+  }
+
+  const target = horizontal
+    ? {
+        x: start.x + Math.sign(end.x - start.x) * lengthMeters,
+        y: end.y,
+      }
+    : {
+        x: end.x,
+        y: start.y + Math.sign(end.y - start.y) * lengthMeters,
+      };
+  return moveOrthogonalCorner(boundary, endIndex, target, snapStepMeters);
+}

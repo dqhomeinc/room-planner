@@ -453,6 +453,65 @@ h2 {
   line-height: 1.5;
 }
 
+.boundary-tools {
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgb(24 51 45 / 14%);
+  background: rgb(255 255 255 / 62%);
+}
+
+.boundary-history-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.boundary-tools button {
+  padding: 8px 12px;
+  border: 1px solid rgb(24 51 45 / 24%);
+  border-radius: 8px;
+  color: #18332d;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.boundary-tools button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.wall-lengths {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.wall-length {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.wall-length label {
+  display: grid;
+  gap: 5px;
+  color: #4b625d;
+  font-size: 12px;
+}
+
+.wall-length input {
+  min-width: 0;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgb(24 51 45 / 24%);
+  border-radius: 8px;
+  color: #18332d;
+  background: #fff;
+  font: inherit;
+}
+
 .plan-dimensions {
   fill: #4b625d;
   font-size: 22px;
@@ -538,6 +597,10 @@ h2 {
   .room-builder-layout {
     grid-template-columns: 1fr;
     gap: 28px;
+  }
+
+  .wall-lengths {
+    grid-template-columns: 1fr;
   }
 
   .video-details {
