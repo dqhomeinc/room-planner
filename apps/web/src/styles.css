@@ -125,6 +125,17 @@ h2 {
   text-decoration: none;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+
+.hero-actions .quiet-link {
+  margin-top: 18px;
+}
+
 .capture {
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;

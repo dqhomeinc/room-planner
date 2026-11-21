@@ -1,11 +1,11 @@
 export const productSteps = [
   {
-    title: 'Capture',
-    description: 'Follow simple guidance while moving through the room.',
+    title: 'Define',
+    description: 'Enter known dimensions or choose a video of the room.',
   },
   {
-    title: 'Calibrate',
-    description: 'Confirm one known length to scale the reconstructed space.',
+    title: 'Review',
+    description: 'Check the room shape, measurements, and inferred geometry.',
   },
   {
     title: 'Explore',
