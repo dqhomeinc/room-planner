@@ -1,5 +1,6 @@
 import { CapturePanel } from './capture-panel';
 import { productSteps } from './product-steps';
+import { RoomDimensionForm } from './room-dimension-form';
 import { RoomPlanSurface } from './room-plan-surface';
 import './styles.css';
 
@@ -28,12 +29,18 @@ export function App() {
           <p className="eyebrow">A room, reconsidered</p>
           <h1>See the space before you furnish it.</h1>
           <p className="lede">
-            Capture a room with your phone, explore a measured 3D model, and
-            compare furnishing plans built from products you can actually buy.
+            Start with room dimensions you already know, or choose a phone video
+            for the reconstruction workflow. Then compare furnishing plans built
+            from products you can actually buy.
           </p>
-          <a className="primary-action" href="#capture">
-            Choose a room video
-          </a>
+          <div className="hero-actions">
+            <a className="primary-action" href="#room-builder">
+              Enter room dimensions
+            </a>
+            <a className="quiet-link" href="#capture">
+              Or choose a room video
+            </a>
+          </div>
         </div>
         <div className="room-card">
           <RoomPlanSurface
@@ -44,11 +51,13 @@ export function App() {
         </div>
       </section>
 
+      <RoomDimensionForm />
+
       <CapturePanel />
 
       <section className="workflow" id="workflow">
         <p className="eyebrow">The pilot workflow</p>
-        <h2>From phone video to a practical plan.</h2>
+        <h2>From room input to a practical plan.</h2>
         <ol>
           {productSteps.map((step, index) => (
             <li key={step.title}>
